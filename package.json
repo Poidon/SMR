@@ -1,0 +1,12 @@
+{
+  "name": "smr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "แบบฟอร์มลงทะเบียนงานสัมมนา (SMR) เสิร์ฟผ่านเว็บเซิร์ฟเวอร์ static เล็ก ๆ",
+  "scripts": {
+    "start": "node serve.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
