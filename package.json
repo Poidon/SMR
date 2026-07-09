@@ -1,10 +1,13 @@
 {
-  "name": "smr",
+  "name": "seminar-system",
   "version": "1.0.0",
   "private": true,
-  "description": "แบบฟอร์มลงทะเบียนงานสัมมนา (SMR) เสิร์ฟผ่านเว็บเซิร์ฟเวอร์ static เล็ก ๆ",
+  "description": "ระบบลงทะเบียนเข้าร่วมงานสัมมนา เก็บข้อมูลลงไฟล์ในเครื่อง (รองรับ PostgreSQL ผ่าน DATABASE_URL) พร้อมหน้าหลังบ้าน",
   "scripts": {
-    "start": "node serve.js"
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
   },
   "engines": {
     "node": ">=18"

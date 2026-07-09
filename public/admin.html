@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>หลังบ้าน - รายชื่อผู้ลงทะเบียนสัมมนา</title>
+  <style>
+    :root {
+      --brand: #4f46e5; --brand-dark: #4338ca; --bg: #f1f5f9; --card: #fff;
+      --text: #1e293b; --muted: #64748b; --border: #e2e8f0; --error: #dc2626;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI","Sarabun","Prompt",system-ui,sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 24px 16px 64px; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+
+    .login { max-width: 380px; margin: 60px auto; background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 2px 12px rgba(15,23,42,.08); }
+    .login h1 { text-align: center; }
+    .login input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 15px; margin: 12px 0; }
+    .login button, .btn {
+      background: var(--brand); color: #fff; border: none; padding: 11px 18px;
+      border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    .login button { width: 100%; padding: 13px; }
+    .btn:hover, .login button:hover { background: var(--brand-dark); }
+    .btn.ghost { background: #fff; color: var(--brand); border: 1px solid var(--border); }
+    .btn.danger { background: #fff; color: var(--error); border: 1px solid #fecaca; padding: 6px 12px; font-size: 13px; }
+    .login .err { color: var(--error); font-size: 14px; text-align: center; min-height: 20px; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+    .toolbar .spacer { flex: 1; }
+    .count { background: var(--brand); color: #fff; padding: 5px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+    .search { padding: 9px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; min-width: 220px; }
+
+    .table-card { background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(15,23,42,.06); }
+    .scroll { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 13.5px; white-space: nowrap; }
+    th, td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { background: #f8fafc; font-weight: 700; color: var(--brand-dark); position: sticky; top: 0; }
+    tr:hover td { background: #f8faff; }
+    td.wrap-cell { white-space: normal; max-width: 260px; }
+    .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; background: #eef2ff; color: var(--brand-dark); }
+    .pill.mode { background: #ecfeff; color: #0e7490; }
+    .yes { color: #16a34a; font-weight: 700; }
+    .no { color: #cbd5e1; }
+    .empty { text-align: center; padding: 50px; color: var(--muted); }
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <!-- หน้าเข้าสู่ระบบ -->
+  <div id="loginView" class="login">
+    <h1>เข้าสู่ระบบหลังบ้าน</h1>
+    <input type="password" id="key" placeholder="กรอกรหัสผ่าน" />
+    <div class="err" id="loginErr"></div>
+    <button id="loginBtn">เข้าสู่ระบบ</button>
+  </div>
+
+  <!-- หน้าข้อมูล -->
+  <div id="dataView" class="wrap" style="display:none">
+    <h1>รายชื่อผู้ลงทะเบียนงานสัมมนา</h1>
+    <p class="sub">จัดการและส่งออกข้อมูลผู้เข้าร่วม</p>
+
+    <div class="toolbar">
+      <span class="count" id="count">0 คน</span>
+      <input class="search" id="search" placeholder="ค้นหา ชื่อ / อีเมล / สถาบัน..." />
+      <div class="spacer"></div>
+      <button class="btn ghost" id="refreshBtn">รีเฟรช</button>
+      <button class="btn" id="exportBtn">ดาวน์โหลด CSV</button>
+      <button class="btn ghost" id="logoutBtn">ออกจากระบบ</button>
+    </div>
+
+    <div class="table-card">
+      <div class="scroll">
+        <table id="table">
+          <thead>
+            <tr>
+              <th>#</th><th>ชื่อ-นามสกุล</th><th>รหัส นศ.</th><th>สถาบัน / คณะ / สาขา</th>
+              <th>ชั้นปี</th><th>อีเมล</th><th>เบอร์โทร</th><th>สถานะ</th><th>รูปแบบ</th>
+              <th>ทราบข่าวจาก</th><th>สิ่งที่คาดหวัง</th><th>คำถามถึงวิทยากร</th>
+              <th>ชื่อ (อังกฤษ)</th><th>ยินยอมถ่ายภาพ</th><th>ยินยอมเก็บข้อมูล</th>
+              <th>เวลาลงทะเบียน</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="empty" style="display:none">ยังไม่มีผู้ลงทะเบียน</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let KEY = sessionStorage.getItem('adminKey') || '';
+    let rows = [];
+
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    async function login() {
+      const k = $('key').value.trim();
+      if (!k) return;
+      const res = await fetch('/api/registrations?key=' + encodeURIComponent(k));
+      if (res.ok) {
+        KEY = k; sessionStorage.setItem('adminKey', k);
+        showData(); load();
+      } else {
+        $('loginErr').textContent = 'รหัสผ่านไม่ถูกต้อง';
+      }
+    }
+    function showData() { $('loginView').style.display = 'none'; $('dataView').style.display = 'block'; }
+    function logout() { sessionStorage.removeItem('adminKey'); KEY = ''; location.reload(); }
+
+    async function load() {
+      const res = await fetch('/api/registrations?key=' + encodeURIComponent(KEY));
+      if (!res.ok) { logout(); return; }
+      const out = await res.json();
+      rows = out.data || [];
+      render();
+    }
+
+    function channelText(r) {
+      if (r.heardFrom === 'อื่น ๆ' && r.heardFromOther) return 'อื่น ๆ: ' + r.heardFromOther;
+      return r.heardFrom || '';
+    }
+    function expectText(r) {
+      const exp = [...(r.expectations || [])];
+      if (r.expectations && r.expectations.includes('อื่น ๆ') && r.expectationsOther) {
+        exp[exp.indexOf('อื่น ๆ')] = 'อื่น ๆ: ' + r.expectationsOther;
+      }
+      return exp.join(', ');
+    }
+
+    function render() {
+      const q = $('search').value.trim().toLowerCase();
+      const list = rows.filter(r => !q ||
+        [r.fullName, r.email, r.institution, r.phone, r.nameEnglish, r.studentId]
+          .some(v => String(v || '').toLowerCase().includes(q)));
+
+      $('count').textContent = rows.length + ' คน';
+      $('empty').style.display = list.length ? 'none' : 'block';
+      $('table').style.display = list.length ? 'table' : 'none';
+
+      $('tbody').innerHTML = list.map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${esc(r.fullName)}</td>
+          <td>${esc(r.studentId) || '<span class="no">-</span>'}</td>
+          <td class="wrap-cell">${esc(r.institution)}</td>
+          <td>${esc(r.yearLevel) || '<span class="no">-</span>'}</td>
+          <td>${esc(r.email)}</td>
+          <td>${esc(r.phone)}</td>
+          <td><span class="pill">${esc(r.status)}</span></td>
+          <td><span class="pill mode">${esc(r.attendMode)}</span></td>
+          <td class="wrap-cell">${esc(channelText(r)) || '<span class="no">-</span>'}</td>
+          <td class="wrap-cell">${esc(expectText(r)) || '<span class="no">-</span>'}</td>
+          <td class="wrap-cell">${esc(r.questions) || '<span class="no">-</span>'}</td>
+          <td>${esc(r.nameEnglish)}</td>
+          <td>${r.consentMedia ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'}</td>
+          <td>${r.consentData ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'}</td>
+          <td class="muted">${new Date(r.createdAt).toLocaleString('th-TH')}</td>
+          <td><button class="btn danger" data-id="${esc(r.id)}">ลบ</button></td>
+        </tr>`).join('');
+
+      document.querySelectorAll('button[data-id]').forEach(b => {
+        b.onclick = () => remove(b.getAttribute('data-id'));
+      });
+    }
+
+    async function remove(id) {
+      if (!confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) return;
+      const res = await fetch('/api/registrations/' + encodeURIComponent(id), {
+        method: 'DELETE', headers: { 'x-admin-key': KEY },
+      });
+      if (res.ok) load(); else alert('ลบไม่สำเร็จ');
+    }
+
+    function exportCsv() { window.location = '/api/export.csv?key=' + encodeURIComponent(KEY); }
+
+    $('loginBtn').onclick = login;
+    $('key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+    $('refreshBtn').onclick = load;
+    $('exportBtn').onclick = exportCsv;
+    $('logoutBtn').onclick = logout;
+    $('search').addEventListener('input', render);
+
+    // ถ้าเคยล็อกอินไว้แล้ว
+    if (KEY) { showData(); load(); }
+  </script>
+</body>
+</html>

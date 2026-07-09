@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ลงทะเบียนเข้าร่วมงานสัมมนา</title>
+  <style>
+    :root {
+      --brand: #4f46e5;
+      --brand-dark: #4338ca;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --error: #dc2626;
+      --ok: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Sarabun", "Prompt", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.hero {
+      background: linear-gradient(135deg, var(--brand), #7c3aed);
+      color: #fff;
+      border-radius: 18px;
+      padding: 32px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(79, 70, 229, .25);
+    }
+    header.hero h1 { margin: 0 0 6px; font-size: 26px; }
+    header.hero p { margin: 0; opacity: .92; font-size: 15px; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px 22px;
+      box-shadow: 0 2px 12px rgba(15, 23, 42, .06);
+      margin-bottom: 18px;
+    }
+    .card h2 {
+      font-size: 16px; margin: 0 0 18px; padding-bottom: 12px;
+      border-bottom: 2px solid var(--border); color: var(--brand-dark);
+    }
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+    label.q { display: block; font-weight: 600; margin-bottom: 8px; font-size: 15px; }
+    .req { color: var(--error); }
+    .hint { font-weight: 400; color: var(--muted); font-size: 13px; }
+    input[type=text], input[type=email], input[type=tel], textarea, select {
+      width: 100%; padding: 11px 13px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 15px; font-family: inherit; background: #fff; color: var(--text);
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(79, 70, 229, .15);
+    }
+    textarea { resize: vertical; min-height: 84px; }
+    .choices { display: flex; flex-direction: column; gap: 10px; }
+    .choices.row { flex-direction: row; flex-wrap: wrap; gap: 12px; }
+    .opt {
+      display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+      border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: .15s;
+      font-size: 15px;
+    }
+    .opt:hover { border-color: var(--brand); background: #f8faff; }
+    .opt input { width: 18px; height: 18px; accent-color: var(--brand); margin: 0; cursor: pointer; }
+    .choices.row .opt { flex: 1 1 140px; }
+    .other-input { margin-top: 8px; }
+    .consent .opt { border-style: dashed; }
+    .err { color: var(--error); font-size: 13px; margin-top: 6px; display: none; }
+    .field.invalid .err { display: block; }
+    .field.invalid input, .field.invalid textarea, .field.invalid select { border-color: var(--error); }
+    button.submit {
+      width: 100%; padding: 15px; font-size: 17px; font-weight: 700; color: #fff;
+      background: var(--brand); border: none; border-radius: 12px; cursor: pointer;
+      transition: .15s; box-shadow: 0 6px 18px rgba(79, 70, 229, .3);
+    }
+    button.submit:hover { background: var(--brand-dark); }
+    button.submit:disabled { opacity: .6; cursor: not-allowed; }
+    #msg { margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: 14px; display: none; }
+    #msg.show { display: block; }
+    #msg.error { background: #fef2f2; color: var(--error); border: 1px solid #fecaca; }
+    #msg.success { background: #f0fdf4; color: var(--ok); border: 1px solid #bbf7d0; }
+    .done { text-align: center; padding: 40px 20px; }
+    .done .check {
+      width: 72px; height: 72px; border-radius: 50%; background: var(--ok); color: #fff;
+      font-size: 40px; line-height: 72px; margin: 0 auto 16px;
+    }
+    .done h2 { border: none; color: var(--ok); font-size: 22px; }
+    .footer-note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>ลงทะเบียนเข้าร่วมงานสัมมนา</h1>
+      <p>กรุณากรอกข้อมูลให้ครบถ้วน ช่องที่มีเครื่องหมาย <span style="color:#fecaca">*</span> จำเป็นต้องกรอก</p>
+    </header>
+
+    <form id="form" novalidate>
+      <!-- ข้อมูลพื้นฐาน -->
+      <div class="card">
+        <h2>ข้อมูลพื้นฐาน</h2>
+
+        <div class="field" data-req>
+          <label class="q" for="fullName">1. ชื่อ - นามสกุล <span class="req">*</span></label>
+          <input type="text" id="fullName" name="fullName" autocomplete="name" />
+          <div class="err">กรุณากรอกชื่อ-นามสกุล</div>
+        </div>
+
+        <div class="field">
+          <label class="q" for="studentId">2. รหัสนักศึกษา <span class="hint">(ถ้ามี)</span></label>
+          <input type="text" id="studentId" name="studentId" />
+        </div>
+
+        <div class="field" data-req>
+          <label class="q" for="institution">3. มหาวิทยาลัย / คณะ / สาขา <span class="req">*</span></label>
+          <input type="text" id="institution" name="institution" placeholder="เช่น มหาวิทยาลัย... / คณะ... / สาขา..." />
+          <div class="err">กรุณากรอกมหาวิทยาลัย / คณะ / สาขา</div>
+        </div>
+
+        <div class="field">
+          <label class="q" for="yearLevel">4. ชั้นปี</label>
+          <input type="text" id="yearLevel" name="yearLevel" placeholder="เช่น ปี 1, ปี 2 (ถ้ามี)" />
+        </div>
+
+        <div class="field" data-req>
+          <label class="q" for="email">5. อีเมล <span class="req">*</span></label>
+          <input type="email" id="email" name="email" autocomplete="email" />
+          <div class="err">อีเมลไม่ถูกต้อง</div>
+        </div>
+
+        <div class="field" data-req>
+          <label class="q" for="phone">6. เบอร์โทรศัพท์ <span class="req">*</span></label>
+          <input type="tel" id="phone" name="phone" inputmode="numeric" placeholder="เช่น 0812345678" />
+          <div class="err">เบอร์โทรไม่ถูกต้อง (9-10 หลัก)</div>
+        </div>
+      </div>
+
+      <!-- ข้อมูลการเข้าร่วม -->
+      <div class="card">
+        <h2>ข้อมูลการเข้าร่วม</h2>
+
+        <div class="field" data-req>
+          <label class="q">7. สถานะผู้เข้าร่วม <span class="req">*</span></label>
+          <div class="choices" id="statusChoices"></div>
+          <div class="err">กรุณาเลือกสถานะผู้เข้าร่วม</div>
+        </div>
+
+        <div class="field" data-req>
+          <label class="q">8. รูปแบบการเข้าร่วม <span class="req">*</span></label>
+          <div class="choices row" id="modeChoices"></div>
+          <div class="err">กรุณาเลือกรูปแบบการเข้าร่วม</div>
+        </div>
+
+        <div class="field">
+          <label class="q">9. ทราบข่าวงานนี้จากช่องทางใด</label>
+          <div class="choices" id="channelChoices"></div>
+          <input type="text" class="other-input" id="heardFromOther" placeholder="โปรดระบุช่องทางอื่น ๆ" style="display:none" />
+        </div>
+
+        <div class="field">
+          <label class="q">10. สิ่งที่คาดหวังจากการเข้าร่วมสัมมนา <span class="hint">(เลือกได้มากกว่า 1)</span></label>
+          <div class="choices" id="expectChoices"></div>
+          <input type="text" class="other-input" id="expectationsOther" placeholder="โปรดระบุสิ่งที่คาดหวังอื่น ๆ" style="display:none" />
+        </div>
+
+        <div class="field">
+          <label class="q" for="questions">11. คำถามหรือหัวข้อที่อยากให้วิทยากรพูดถึง</label>
+          <textarea id="questions" name="questions" placeholder="พิมพ์คำถามหรือหัวข้อที่สนใจ (ถ้ามี)"></textarea>
+        </div>
+      </div>
+
+      <!-- สำหรับการออกเกียรติบัตร -->
+      <div class="card">
+        <h2>สำหรับการออกเกียรติบัตร</h2>
+        <div class="field" data-req>
+          <label class="q" for="nameEnglish">12. ชื่อ-นามสกุล (ภาษาอังกฤษ) <span class="req">*</span>
+            <span class="hint">— ใช้สำหรับออกเกียรติบัตร</span></label>
+          <input type="text" id="nameEnglish" name="nameEnglish" placeholder="เช่น Somchai Jaidee" />
+          <div class="err">กรุณากรอกชื่อ-นามสกุล (ภาษาอังกฤษ)</div>
+        </div>
+      </div>
+
+      <!-- การยินยอม -->
+      <div class="card consent">
+        <h2>การยินยอม</h2>
+        <div class="field" data-req>
+          <label class="opt">
+            <input type="checkbox" id="consentMedia" />
+            <span>13. ยินยอมให้บันทึกภาพ / วิดีโอภายในงาน <span class="req">*</span></span>
+          </label>
+          <div class="err">กรุณายินยอมข้อนี้เพื่อดำเนินการต่อ</div>
+        </div>
+        <div class="field" data-req>
+          <label class="opt">
+            <input type="checkbox" id="consentData" />
+            <span>14. ยินยอมให้เก็บข้อมูลเพื่อใช้ในการจัดกิจกรรม <span class="req">*</span></span>
+          </label>
+          <div class="err">กรุณายินยอมข้อนี้เพื่อดำเนินการต่อ</div>
+        </div>
+      </div>
+
+      <button type="submit" class="submit" id="submitBtn">ลงทะเบียน</button>
+      <div id="msg"></div>
+    </form>
+
+    <p class="footer-note">ระบบลงทะเบียนงานสัมมนา</p>
+  </div>
+
+  <script>
+    const STATUSES = ['นักศึกษา', 'อาจารย์', 'บุคคลภายนอก'];
+    const MODES = ['On-site', 'Online'];
+    const CHANNELS = ['Facebook', 'Instagram', 'Line', 'เพื่อนแนะนำ', 'อาจารย์ประชาสัมพันธ์', 'อื่น ๆ'];
+    const EXPECTATIONS = ['ได้รับความรู้เพิ่มเติม', 'แนวทางการทำงานในอนาคต', 'แลกเปลี่ยนประสบการณ์', 'อื่น ๆ'];
+
+    // สร้างตัวเลือกแบบ radio
+    function buildRadios(el, name, items) {
+      el.innerHTML = items.map(v => `
+        <label class="opt"><input type="radio" name="${name}" value="${v}" /> <span>${v}</span></label>`).join('');
+    }
+    // สร้างตัวเลือกแบบ checkbox
+    function buildChecks(el, name, items) {
+      el.innerHTML = items.map(v => `
+        <label class="opt"><input type="checkbox" name="${name}" value="${v}" /> <span>${v}</span></label>`).join('');
+    }
+
+    buildRadios(document.getElementById('statusChoices'), 'status', STATUSES);
+    buildRadios(document.getElementById('modeChoices'), 'attendMode', MODES);
+    buildRadios(document.getElementById('channelChoices'), 'heardFrom', CHANNELS);
+    buildChecks(document.getElementById('expectChoices'), 'expectations', EXPECTATIONS);
+
+    // แสดง/ซ่อนช่อง "อื่น ๆ"
+    const heardOther = document.getElementById('heardFromOther');
+    document.querySelectorAll('input[name=heardFrom]').forEach(r => {
+      r.addEventListener('change', () => {
+        heardOther.style.display = (r.value === 'อื่น ๆ' && r.checked) ? 'block' : 'none';
+      });
+    });
+    const expectOther = document.getElementById('expectationsOther');
+    document.querySelectorAll('input[name=expectations]').forEach(c => {
+      c.addEventListener('change', () => {
+        const other = document.querySelector('input[name=expectations][value="อื่น ๆ"]');
+        expectOther.style.display = other && other.checked ? 'block' : 'none';
+      });
+    });
+
+    const $ = id => document.getElementById(id);
+    const validEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    const validPhone = v => /^[0-9]{9,10}$/.test(v.replace(/[\s-]/g, ''));
+
+    function fieldOf(el) { return el.closest('.field'); }
+    function setInvalid(el, bad) { const f = fieldOf(el); if (f) f.classList.toggle('invalid', bad); }
+    function setErrText(el, m) { const e = fieldOf(el).querySelector('.err'); if (e) e.textContent = m; }
+
+    // ล้างสถานะ error เมื่อผู้ใช้แก้ไข (ยกเว้นอีเมล/เบอร์ ที่มีการตรวจสดของตัวเอง)
+    document.getElementById('form').addEventListener('input', e => {
+      if (e.target.id === 'email' || e.target.id === 'phone') return;
+      const f = e.target.closest('.field'); if (f) f.classList.remove('invalid');
+    });
+    document.getElementById('form').addEventListener('change', e => {
+      if (e.target.id === 'email' || e.target.id === 'phone') return;
+      const f = e.target.closest('.field'); if (f) f.classList.remove('invalid');
+    });
+
+    // ===== ตรวจอีเมล/เบอร์แบบเรียลไทม์ (ถามเซิร์ฟเวอร์ว่าซ้ำไหม ขณะพิมพ์) =====
+    // onlyDup = true : ระหว่างพิมพ์ เตือนเฉพาะกรณีซ้ำ ไม่รบกวนเรื่องรูปแบบ
+    async function liveCheck(el, { onlyDup = false } = {}) {
+      const val = el.value.trim();
+      const isEmail = el.id === 'email';
+      if (!val) { setInvalid(el, false); return; }
+      const formatOk = isEmail ? validEmail(val) : validPhone(val);
+      if (!formatOk) {
+        if (onlyDup) { setInvalid(el, false); return; }
+        setErrText(el, isEmail ? 'อีเมลไม่ถูกต้อง' : 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)');
+        setInvalid(el, true);
+        return;
+      }
+      try {
+        const qs = isEmail ? 'email=' + encodeURIComponent(val) : 'phone=' + encodeURIComponent(val);
+        const out = await (await fetch('/api/check?' + qs)).json();
+        if (el.value.trim() !== val) return;          // ผู้ใช้แก้ค่าต่อระหว่างรอ — ทิ้งผลเก่า
+        const taken = isEmail ? out.emailTaken : out.phoneTaken;
+        if (taken) {
+          setErrText(el, isEmail ? 'อีเมลนี้ถูกใช้ลงทะเบียนแล้ว' : 'เบอร์โทรนี้ถูกใช้ลงทะเบียนแล้ว');
+          setInvalid(el, true);
+        } else {
+          setInvalid(el, false);
+        }
+      } catch { /* ออฟไลน์: ข้ามการเช็คสด แล้วไปเช็คตอนกดส่งแทน */ }
+    }
+    function scheduleCheck(el) { clearTimeout(el._t); el._t = setTimeout(() => liveCheck(el, { onlyDup: true }), 400); }
+    $('email').addEventListener('input', () => scheduleCheck($('email')));
+    $('email').addEventListener('blur', () => liveCheck($('email')));
+    $('phone').addEventListener('input', () => scheduleCheck($('phone')));
+    $('phone').addEventListener('blur', () => liveCheck($('phone')));
+
+    function radioValue(name) {
+      const r = document.querySelector(`input[name=${name}]:checked`); return r ? r.value : '';
+    }
+
+    const form = document.getElementById('form');
+    const msg = $('msg');
+    const btn = $('submitBtn');
+
+    function showMsg(text, type) {
+      msg.textContent = text; msg.className = 'show ' + type;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.className = '';
+
+      const data = {
+        fullName: $('fullName').value.trim(),
+        studentId: $('studentId').value.trim(),
+        institution: $('institution').value.trim(),
+        yearLevel: $('yearLevel').value.trim(),
+        email: $('email').value.trim(),
+        phone: $('phone').value.trim(),
+        status: radioValue('status'),
+        attendMode: radioValue('attendMode'),
+        heardFrom: radioValue('heardFrom'),
+        heardFromOther: heardOther.value.trim(),
+        expectations: [...document.querySelectorAll('input[name=expectations]:checked')].map(c => c.value),
+        expectationsOther: expectOther.value.trim(),
+        questions: $('questions').value.trim(),
+        nameEnglish: $('nameEnglish').value.trim(),
+        consentMedia: $('consentMedia').checked,
+        consentData: $('consentData').checked,
+      };
+
+      // ตรวจสอบฝั่งหน้าเว็บ
+      let firstBad = null;
+      const fail = (el, cond) => { setInvalid(el, cond); if (cond && !firstBad) firstBad = fieldOf(el); return cond; };
+      // รีเซ็ตข้อความเตือนใต้ช่องกลับเป็นค่าเริ่มต้น (กรณีตรวจรูปแบบ)
+      setErrText($('email'), 'อีเมลไม่ถูกต้อง');
+      setErrText($('phone'), 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)');
+
+      fail($('fullName'), !data.fullName);
+      fail($('institution'), !data.institution);
+      fail($('email'), !validEmail(data.email));
+      fail($('phone'), !validPhone(data.phone));
+      fail(document.getElementById('statusChoices'), !data.status);
+      fail(document.getElementById('modeChoices'), !data.attendMode);
+      fail($('nameEnglish'), !data.nameEnglish);
+      fail($('consentMedia'), !data.consentMedia);
+      fail($('consentData'), !data.consentData);
+
+      if (firstBad) {
+        firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showMsg('กรุณาตรวจสอบข้อมูลที่ยังไม่ถูกต้อง', 'error');
+        return;
+      }
+
+      btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const out = await res.json();
+        if (res.ok && out.ok) {
+          form.innerHTML = `
+            <div class="card done">
+              <div class="check">✓</div>
+              <h2>ลงทะเบียนสำเร็จ!</h2>
+              <p>ขอบคุณที่ลงทะเบียนเข้าร่วมงานสัมมนา<br>เราได้บันทึกข้อมูลของคุณเรียบร้อยแล้ว</p>
+            </div>`;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          showMsg(out.error || 'เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+          // เซิร์ฟเวอร์บอกว่าช่องไหนซ้ำ → เตือนใต้ช่องนั้น
+          if (out.field === 'email' || out.field === 'phone') {
+            setErrText($(out.field), out.error);
+            setInvalid($(out.field), true);
+            fieldOf($(out.field)).scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          btn.disabled = false; btn.textContent = 'ลงทะเบียน';
+        }
+      } catch (err) {
+        showMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่', 'error');
+        btn.disabled = false; btn.textContent = 'ลงทะเบียน';
+      }
+    });
+  </script>
+</body>
+</html>
