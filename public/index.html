@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ลงทะเบียนเข้าร่วมงานสัมมนา</title>
+  <title>THINK WITH DATA, DECIDE WITH AI — ลงทะเบียน</title>
   <style>
     :root {
       --brand: #4f46e5;
@@ -26,15 +26,37 @@
     }
     .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
     header.hero {
-      background: linear-gradient(135deg, var(--brand), #7c3aed);
+      position: relative; overflow: hidden; text-align: center;
+      background:
+        radial-gradient(circle at 82% 118%, rgba(230, 193, 90, .38), transparent 46%),
+        radial-gradient(circle at 12% -10%, rgba(230, 193, 90, .12), transparent 40%),
+        #0b0b0d;
       color: #fff;
       border-radius: 18px;
-      padding: 32px 28px;
-      margin-bottom: 24px;
-      box-shadow: 0 10px 30px rgba(79, 70, 229, .25);
+      padding: 44px 26px 40px;
+      margin-bottom: 20px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, .35);
     }
-    header.hero h1 { margin: 0 0 6px; font-size: 26px; }
-    header.hero p { margin: 0; opacity: .92; font-size: 15px; }
+    header.hero h1 {
+      margin: 0; line-height: 1.03; text-transform: uppercase; letter-spacing: .015em;
+      font-family: "Arial Black", "Helvetica Neue", Impact, system-ui, sans-serif; font-weight: 900;
+      font-size: clamp(30px, 8.5vw, 54px);
+      text-shadow: 0 2px 14px rgba(0, 0, 0, .5);
+    }
+    header.hero h1 + h1 { margin-top: 2px; }
+    .hero .gold {
+      background: linear-gradient(180deg, #f6dc83 0%, #e6c15a 45%, #c6981f 100%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero-date { margin-top: 20px; color: #e6c15a; font-weight: 800; letter-spacing: .1em;
+      font-size: clamp(18px, 4.5vw, 26px); }
+    .hero-time { color: #cbd5e1; margin-top: 3px; letter-spacing: .18em; font-size: 15px; }
+    .hero-venue { color: #9aa3b2; margin-top: 14px; font-size: 14px; line-height: 1.5; }
+    .hero-badge { display: inline-block; margin-top: 22px; padding: 11px 28px; border-radius: 999px;
+      background: linear-gradient(180deg, #f6dc83, #d9a92e); color: #1a1400; font-weight: 800; font-size: 15px;
+      box-shadow: 0 6px 18px rgba(230, 193, 90, .3); }
+    .form-hint { text-align: center; color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+    .form-hint .req { color: var(--error); }
     .card {
       background: var(--card);
       border-radius: 16px;
@@ -102,9 +124,15 @@
 <body>
   <div class="wrap">
     <header class="hero">
-      <h1>ลงทะเบียนเข้าร่วมงานสัมมนา</h1>
-      <p>กรุณากรอกข้อมูลให้ครบถ้วน ช่องที่มีเครื่องหมาย <span style="color:#fecaca">*</span> จำเป็นต้องกรอก</p>
+      <h1>THINK WITH <span class="gold">DATA</span></h1>
+      <h1><span class="gold">DECIDE</span> WITH AI</h1>
+      <div class="hero-date">3 APRIL 2026</div>
+      <div class="hero-time">13:00 – 16:00</div>
+      <div class="hero-venue">Siam University<br>Building 19, Hall Of Fame</div>
+      <div class="hero-badge">เข้าร่วมฟรี · ลงทะเบียนได้แล้ววันนี้</div>
     </header>
+
+    <p class="form-hint">กรุณากรอกข้อมูลให้ครบถ้วน · ช่องที่มีเครื่องหมาย <span class="req">*</span> จำเป็นต้องกรอก</p>
 
     <form id="form" novalidate>
       <!-- ข้อมูลพื้นฐาน -->
