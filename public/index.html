@@ -91,6 +91,11 @@
       font-size: 40px; line-height: 72px; margin: 0 auto 16px;
     }
     .done h2 { border: none; color: var(--ok); font-size: 22px; }
+    .done button {
+      margin-top: 18px; background: var(--brand); color: #fff; border: none;
+      padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    .done button:hover { background: var(--brand-dark); }
     .footer-note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 20px; }
   </style>
 </head>
@@ -371,6 +376,7 @@
               <div class="check">✓</div>
               <h2>ลงทะเบียนสำเร็จ!</h2>
               <p>ขอบคุณที่ลงทะเบียนเข้าร่วมงานสัมมนา<br>เราได้บันทึกข้อมูลของคุณเรียบร้อยแล้ว</p>
+              <button type="button" onclick="location.reload()">ลงทะเบียนเพิ่ม</button>
             </div>`;
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
