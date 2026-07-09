@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ลงทะเบียนเข้าร่วมงานสัมมนา</title>
+  <style>
+    :root {
+      --brand: #4f46e5;
+      --brand-dark: #4338ca;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --error: #dc2626;
+      --ok: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Sarabun", "Prompt", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.hero {
+      background: linear-gradient(135deg, var(--brand), #7c3aed);
+      color: #fff;
+      border-radius: 18px;
+      padding: 32px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(79, 70, 229, .25);
+    }
+    header.hero h1 { margin: 0 0 6px; font-size: 26px; }
+    header.hero p { margin: 0; opacity: .92; font-size: 15px; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px 22px;
+      box-shadow: 0 2px 12px rgba(15, 23, 42, .06);
+      margin-bottom: 18px;
+    }
+    .card h2 {
+      font-size: 16px; margin: 0 0 18px; padding-bottom: 12px;
+      border-bottom: 2px solid var(--border); color: var(--brand-dark);
+    }
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+    label.q { display: block; font-weight: 600; margin-bottom: 8px; font-size: 15px; }
+    .req { color: var(--error); }
+    .hint { font-weight: 400; color: var(--muted); font-size: 13px; }
+    input[type=text], input[type=email], input[type=tel], input[type=password], textarea, select {
+      width: 100%; padding: 11px 13px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 15px; font-family: inherit; background: #fff; color: var(--text);
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(79, 70, 229, .15);
+    }
+    textarea { resize: vertical; min-height: 84px; }
+    .choices { display: flex; flex-direction: column; gap: 10px; }
+    .choices.row { flex-direction: row; flex-wrap: wrap; gap: 12px; }
+    .opt {
+      display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+      border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: .15s;
+      font-size: 15px;
+    }
+    .opt:hover { border-color: var(--brand); background: #f8faff; }
+    .opt input { width: 18px; height: 18px; accent-color: var(--brand); margin: 0; cursor: pointer; }
+    .choices.row .opt { flex: 1 1 140px; }
+    .other-input { margin-top: 8px; }
+    .consent .opt { border-style: dashed; }
+    .err { color: var(--error); font-size: 13px; margin-top: 6px; display: none; }
+    .field.invalid .err { display: block; }
+    .field.invalid input, .field.invalid textarea, .field.invalid select { border-color: var(--error); }
+    button.submit {
+      width: 100%; padding: 15px; font-size: 17px; font-weight: 700; color: #fff;
+      background: var(--brand); border: none; border-radius: 12px; cursor: pointer;
+      transition: .15s; box-shadow: 0 6px 18px rgba(79, 70, 229, .3);
+    }
+    button.submit:hover { background: var(--brand-dark); }
+    button.submit:disabled { opacity: .6; cursor: not-allowed; }
+    #msg { margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: 14px; display: none; }
+    #msg.show { display: block; }
+    #msg.error { background: #fef2f2; color: var(--error); border: 1px solid #fecaca; }
+    #msg.success { background: #f0fdf4; color: var(--ok); border: 1px solid #bbf7d0; }
+    .done { text-align: center; padding: 40px 20px; }
+    .done .check {
+      width: 72px; height: 72px; border-radius: 50%; background: var(--ok); color: #fff;
+      font-size: 40px; line-height: 72px; margin: 0 auto 16px;
+    }
+    .done h2 { border: none; color: var(--ok); font-size: 22px; }
+    .done button {
+      margin-top: 18px; background: var(--brand); color: #fff; border: none;
+      padding: 11px 22px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    .footer-note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 20px; }
+    .footer-note a { color: var(--brand); cursor: pointer; text-decoration: none; }
+    .footer-note a:hover { text-decoration: underline; }
+
+    /* --- หน้าดูรายการที่บันทึกไว้ --- */
+    .admin-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+    .admin-bar .spacer { flex: 1; }
+    .count { background: var(--brand); color: #fff; padding: 5px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+    .btn { background: var(--brand); color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: var(--brand-dark); }
+    .btn.ghost { background: #fff; color: var(--brand); border: 1px solid var(--border); }
+    .btn.danger { background: #fff; color: var(--error); border: 1px solid #fecaca; padding: 5px 11px; font-size: 13px; }
+    .scroll { overflow-x: auto; background: #fff; border-radius: 14px; box-shadow: 0 2px 12px rgba(15,23,42,.06); }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; white-space: nowrap; }
+    th, td { padding: 10px 11px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { background: #f8fafc; font-weight: 700; color: var(--brand-dark); }
+    td.wrap-cell { white-space: normal; max-width: 220px; }
+    .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; background: #eef2ff; color: var(--brand-dark); }
+    .pill.mode { background: #ecfeff; color: #0e7490; }
+    .yes { color: #16a34a; font-weight: 700; } .no { color: #cbd5e1; }
+    .empty { text-align: center; padding: 50px; color: var(--muted); }
+
+    /* --- หน้าเข้าสู่ระบบ (admin) --- */
+    .login-box {
+      max-width: 380px; margin: 8vh auto 0; background: var(--card);
+      padding: 32px 28px; border-radius: 16px; box-shadow: 0 2px 12px rgba(15,23,42,.08);
+    }
+    .login-box .lock { text-align: center; font-size: 40px; margin-bottom: 6px; }
+    .login-box h1 { font-size: 22px; margin: 0 0 4px; text-align: center; }
+    .login-box p { text-align: center; color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+    .login-box .login-err { color: var(--error); font-size: 14px; text-align: center; min-height: 22px; }
+    .login-box .btn { width: 100%; padding: 13px; font-size: 16px; margin-bottom: 10px; }
+    .login-box .back { text-align: center; }
+    .login-box .back a { color: var(--muted); font-size: 14px; cursor: pointer; text-decoration: none; }
+    .login-box .back a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <!-- ============ หน้าฟอร์มลงทะเบียน ============ -->
+  <div class="wrap" id="formView">
+    <header class="hero">
+      <h1>ลงทะเบียนเข้าร่วมงานสัมมนา</h1>
+      <p>กรุณากรอกข้อมูลให้ครบถ้วน ช่องที่มีเครื่องหมาย <span style="color:#fecaca">*</span> จำเป็นต้องกรอก</p>
+    </header>
+
+    <form id="form" novalidate>
+      <!-- ข้อมูลพื้นฐาน -->
+      <div class="card">
+        <h2>ข้อมูลพื้นฐาน</h2>
+
+        <div class="field" data-req>
+          <label class="q" for="fullName">1. ชื่อ - นามสกุล <span class="req">*</span></label>
+          <input type="text" id="fullName" name="fullName" autocomplete="name" />
+          <div class="err">กรุณากรอกชื่อ-นามสกุล</div>
+        </div>
+
+        <div class="field">
+          <label class="q" for="studentId">2. รหัสนักศึกษา <span class="hint">(ถ้ามี)</span></label>
+          <input type="text" id="studentId" name="studentId" />
+        </div>
+
+        <div class="field" data-req>
+          <label class="q" for="institution">3. มหาวิทยาลัย / คณะ / สาขา <span class="req">*</span></label>
+          <input type="text" id="institution" name="institution" placeholder="เช่น มหาวิทยาลัย... / คณะ... / สาขา..." />
+          <div class="err">กรุณากรอกมหาวิทยาลัย / คณะ / สาขา</div>
+        </div>
+
+        <div class="field">
+          <label class="q" for="yearLevel">4. ชั้นปี</label>
+          <input type="text" id="yearLevel" name="yearLevel" placeholder="เช่น ปี 1, ปี 2 (ถ้ามี)" />
+        </div>
+
+        <div class="field" data-req>
+          <label class="q" for="email">5. อีเมล <span class="req">*</span></label>
+          <input type="email" id="email" name="email" autocomplete="email" />
+          <div class="err">อีเมลไม่ถูกต้อง</div>
+        </div>
+
+        <div class="field" data-req>
+          <label class="q" for="phone">6. เบอร์โทรศัพท์ <span class="req">*</span></label>
+          <input type="tel" id="phone" name="phone" inputmode="numeric" placeholder="เช่น 0812345678" />
+          <div class="err">เบอร์โทรไม่ถูกต้อง (9-10 หลัก)</div>
+        </div>
+      </div>
+
+      <!-- ข้อมูลการเข้าร่วม -->
+      <div class="card">
+        <h2>ข้อมูลการเข้าร่วม</h2>
+
+        <div class="field" data-req>
+          <label class="q">7. สถานะผู้เข้าร่วม <span class="req">*</span></label>
+          <div class="choices" id="statusChoices"></div>
+          <div class="err">กรุณาเลือกสถานะผู้เข้าร่วม</div>
+        </div>
+
+        <div class="field" data-req>
+          <label class="q">8. รูปแบบการเข้าร่วม <span class="req">*</span></label>
+          <div class="choices row" id="modeChoices"></div>
+          <div class="err">กรุณาเลือกรูปแบบการเข้าร่วม</div>
+        </div>
+
+        <div class="field">
+          <label class="q">9. ทราบข่าวงานนี้จากช่องทางใด</label>
+          <div class="choices" id="channelChoices"></div>
+          <input type="text" class="other-input" id="heardFromOther" placeholder="โปรดระบุช่องทางอื่น ๆ" style="display:none" />
+        </div>
+
+        <div class="field">
+          <label class="q">10. สิ่งที่คาดหวังจากการเข้าร่วมสัมมนา <span class="hint">(เลือกได้มากกว่า 1)</span></label>
+          <div class="choices" id="expectChoices"></div>
+          <input type="text" class="other-input" id="expectationsOther" placeholder="โปรดระบุสิ่งที่คาดหวังอื่น ๆ" style="display:none" />
+        </div>
+
+        <div class="field">
+          <label class="q" for="questions">11. คำถามหรือหัวข้อที่อยากให้วิทยากรพูดถึง</label>
+          <textarea id="questions" name="questions" placeholder="พิมพ์คำถามหรือหัวข้อที่สนใจ (ถ้ามี)"></textarea>
+        </div>
+      </div>
+
+      <!-- สำหรับการออกเกียรติบัตร -->
+      <div class="card">
+        <h2>สำหรับการออกเกียรติบัตร</h2>
+        <div class="field" data-req>
+          <label class="q" for="nameEnglish">12. ชื่อ-นามสกุล (ภาษาอังกฤษ) <span class="req">*</span>
+            <span class="hint">— ใช้สำหรับออกเกียรติบัตร</span></label>
+          <input type="text" id="nameEnglish" name="nameEnglish" placeholder="เช่น Somchai Jaidee" />
+          <div class="err">กรุณากรอกชื่อ-นามสกุล (ภาษาอังกฤษ)</div>
+        </div>
+      </div>
+
+      <!-- การยินยอม -->
+      <div class="card consent">
+        <h2>การยินยอม</h2>
+        <div class="field" data-req>
+          <label class="opt">
+            <input type="checkbox" id="consentMedia" />
+            <span>13. ยินยอมให้บันทึกภาพ / วิดีโอภายในงาน <span class="req">*</span></span>
+          </label>
+          <div class="err">กรุณายินยอมข้อนี้เพื่อดำเนินการต่อ</div>
+        </div>
+        <div class="field" data-req>
+          <label class="opt">
+            <input type="checkbox" id="consentData" />
+            <span>14. ยินยอมให้เก็บข้อมูลเพื่อใช้ในการจัดกิจกรรม <span class="req">*</span></span>
+          </label>
+          <div class="err">กรุณายินยอมข้อนี้เพื่อดำเนินการต่อ</div>
+        </div>
+      </div>
+
+      <button type="submit" class="submit" id="submitBtn">ลงทะเบียน</button>
+      <div id="msg"></div>
+    </form>
+
+    <p class="footer-note">
+      ระบบลงทะเบียนงานสัมมนา · ข้อมูลถูกเก็บไว้ในเครื่องนี้ (เบราว์เซอร์)
+      · <a id="toAdmin">เข้าสู่ระบบผู้ดูแล</a>
+    </p>
+  </div>
+
+  <!-- ============ หน้าเข้าสู่ระบบผู้ดูแล ============ -->
+  <div class="wrap" id="loginView" style="display:none">
+    <div class="login-box">
+      <div class="lock">🔒</div>
+      <h1>เข้าสู่ระบบผู้ดูแล</h1>
+      <p>กรุณากรอกรหัสผ่านเพื่อดูรายชื่อผู้ลงทะเบียน</p>
+      <input type="password" id="pwd" placeholder="รหัสผ่าน" autocomplete="current-password" />
+      <div class="login-err" id="loginErr"></div>
+      <button class="btn" id="loginBtn">เข้าสู่ระบบ</button>
+      <div class="back"><a id="loginBack">← กลับหน้าฟอร์ม</a></div>
+    </div>
+  </div>
+
+  <!-- ============ หน้าดูรายชื่อที่บันทึกไว้ ============ -->
+  <div class="wrap" id="adminView" style="display:none">
+    <header class="hero">
+      <h1>รายชื่อผู้ลงทะเบียน</h1>
+      <p>ข้อมูลทั้งหมดที่บันทึกไว้ในเครื่องนี้</p>
+    </header>
+
+    <div class="admin-bar">
+      <span class="count" id="count">0 คน</span>
+      <input class="search" id="search" placeholder="ค้นหา ชื่อ / อีเมล / สถาบัน..." style="padding:9px 13px;border:1px solid var(--border);border-radius:10px;font-size:14px;min-width:200px" />
+      <div class="spacer"></div>
+      <button class="btn" id="exportBtn">ดาวน์โหลด CSV</button>
+      <button class="btn ghost" id="clearBtn">ล้างข้อมูลทั้งหมด</button>
+      <button class="btn ghost" id="logoutBtn">ออกจากระบบ</button>
+    </div>
+
+    <div class="scroll">
+      <table id="table">
+        <thead>
+          <tr>
+            <th>#</th><th>ชื่อ-นามสกุล</th><th>รหัส นศ.</th><th>สถาบัน/คณะ/สาขา</th><th>ชั้นปี</th>
+            <th>อีเมล</th><th>เบอร์โทร</th><th>สถานะ</th><th>รูปแบบ</th><th>ทราบข่าวจาก</th>
+            <th>สิ่งที่คาดหวัง</th><th>คำถามถึงวิทยากร</th><th>ชื่อ (อังกฤษ)</th>
+            <th>ถ่ายภาพ</th><th>เก็บข้อมูล</th><th>เวลา</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">ยังไม่มีผู้ลงทะเบียน</div>
+    </div>
+  </div>
+
+  <script>
+    // ================== ตั้งค่า ==================
+    // *** เปลี่ยนรหัสผ่านผู้ดูแลได้ที่บรรทัดนี้ ***
+    const ADMIN_PASSWORD = 'admin123';
+
+    // ================== ตัวเลือกของแต่ละหัวข้อ ==================
+    const STATUSES = ['นักศึกษา', 'อาจารย์', 'บุคคลภายนอก'];
+    const MODES = ['On-site', 'Online'];
+    const CHANNELS = ['Facebook', 'Instagram', 'Line', 'เพื่อนแนะนำ', 'อาจารย์ประชาสัมพันธ์', 'อื่น ๆ'];
+    const EXPECTATIONS = ['ได้รับความรู้เพิ่มเติม', 'แนวทางการทำงานในอนาคต', 'แลกเปลี่ยนประสบการณ์', 'อื่น ๆ'];
+    const STORE_KEY = 'seminar_registrations';
+    const AUTH_KEY = 'seminar_admin_authed';
+
+    const $ = id => document.getElementById(id);
+
+    // ================== ที่เก็บข้อมูลในเครื่อง (localStorage) ==================
+    function loadAll() {
+      try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; }
+    }
+    function saveAll(list) { localStorage.setItem(STORE_KEY, JSON.stringify(list)); }
+
+    // ================== สร้างตัวเลือก ==================
+    function buildRadios(el, name, items) {
+      el.innerHTML = items.map(v => `
+        <label class="opt"><input type="radio" name="${name}" value="${v}" /> <span>${v}</span></label>`).join('');
+    }
+    function buildChecks(el, name, items) {
+      el.innerHTML = items.map(v => `
+        <label class="opt"><input type="checkbox" name="${name}" value="${v}" /> <span>${v}</span></label>`).join('');
+    }
+    buildRadios($('statusChoices'), 'status', STATUSES);
+    buildRadios($('modeChoices'), 'attendMode', MODES);
+    buildRadios($('channelChoices'), 'heardFrom', CHANNELS);
+    buildChecks($('expectChoices'), 'expectations', EXPECTATIONS);
+
+    // แสดง/ซ่อนช่อง "อื่น ๆ"
+    const heardOther = $('heardFromOther');
+    document.querySelectorAll('input[name=heardFrom]').forEach(r => {
+      r.addEventListener('change', () => {
+        heardOther.style.display = (r.value === 'อื่น ๆ' && r.checked) ? 'block' : 'none';
+      });
+    });
+    const expectOther = $('expectationsOther');
+    document.querySelectorAll('input[name=expectations]').forEach(c => {
+      c.addEventListener('change', () => {
+        const other = document.querySelector('input[name=expectations][value="อื่น ๆ"]');
+        expectOther.style.display = other && other.checked ? 'block' : 'none';
+      });
+    });
+
+    // ================== ตรวจสอบข้อมูล ==================
+    const validEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    const validPhone = v => /^[0-9]{9,10}$/.test(v.replace(/[\s-]/g, ''));
+    const fieldOf = el => el.closest('.field');
+    const setInvalid = (el, bad) => { const f = fieldOf(el); if (f) f.classList.toggle('invalid', bad); };
+    const setErrText = (el, m) => { const e = fieldOf(el).querySelector('.err'); if (e) e.textContent = m; };
+    const normPhone = s => String(s || '').replace(/[\s-]/g, '');
+    const radioValue = name => { const r = document.querySelector(`input[name=${name}]:checked`); return r ? r.value : ''; };
+
+    const form = $('form'), msg = $('msg'), btn = $('submitBtn');
+    // ล้าง error ระหว่างพิมพ์ (ยกเว้นอีเมล/เบอร์ ซึ่งมีการตรวจสดของตัวเอง)
+    form.addEventListener('input', e => {
+      if (e.target.id === 'email' || e.target.id === 'phone') return;
+      const f = e.target.closest('.field'); if (f) f.classList.remove('invalid');
+    });
+    form.addEventListener('change', e => {
+      if (e.target.id === 'email' || e.target.id === 'phone') return;
+      const f = e.target.closest('.field'); if (f) f.classList.remove('invalid');
+    });
+    const showMsg = (text, type) => { msg.textContent = text; msg.className = 'show ' + type; };
+
+    // ================== ตรวจอีเมล/เบอร์แบบเรียลไทม์ (ไม่ต้องกดลงทะเบียน) ==================
+    // onlyDup = true : ระหว่างพิมพ์ จะเตือนเฉพาะกรณี "ซ้ำ" เท่านั้น ไม่รบกวนเรื่องรูปแบบ
+    function liveCheck(el, { onlyDup = false } = {}) {
+      const val = el.value.trim();
+      const isEmail = el.id === 'email';
+      if (!val) { setInvalid(el, false); return; }        // ว่าง: ยังไม่เตือน (ไว้เตือนตอนกดส่ง)
+      const formatOk = isEmail ? validEmail(val) : validPhone(val);
+      if (!formatOk) {
+        if (onlyDup) { setInvalid(el, false); return; }   // กำลังพิมพ์อยู่ ยังไม่ครบ — ไม่เตือน
+        setErrText(el, isEmail ? 'อีเมลไม่ถูกต้อง' : 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)');
+        setInvalid(el, true);
+        return;
+      }
+      const list = loadAll();
+      const dup = isEmail
+        ? list.some(r => r.email.toLowerCase() === val.toLowerCase())
+        : list.some(r => normPhone(r.phone) === normPhone(val));
+      if (dup) {
+        setErrText(el, isEmail ? 'อีเมลนี้ถูกใช้ลงทะเบียนแล้ว' : 'เบอร์โทรนี้ถูกใช้ลงทะเบียนแล้ว');
+        setInvalid(el, true);
+      } else {
+        setInvalid(el, false);                            // ผ่าน: ล้างเตือน
+      }
+    }
+    $('email').addEventListener('input', () => liveCheck($('email'), { onlyDup: true }));
+    $('email').addEventListener('blur',  () => liveCheck($('email')));
+    $('phone').addEventListener('input', () => liveCheck($('phone'), { onlyDup: true }));
+    $('phone').addEventListener('blur',  () => liveCheck($('phone')));
+
+    // ================== ส่งฟอร์ม ==================
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      msg.className = '';
+
+      const data = {
+        id: (Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36)),
+        fullName: $('fullName').value.trim(),
+        studentId: $('studentId').value.trim(),
+        institution: $('institution').value.trim(),
+        yearLevel: $('yearLevel').value.trim(),
+        email: $('email').value.trim(),
+        phone: $('phone').value.trim(),
+        status: radioValue('status'),
+        attendMode: radioValue('attendMode'),
+        heardFrom: radioValue('heardFrom'),
+        heardFromOther: heardOther.value.trim(),
+        expectations: [...document.querySelectorAll('input[name=expectations]:checked')].map(c => c.value),
+        expectationsOther: expectOther.value.trim(),
+        questions: $('questions').value.trim(),
+        nameEnglish: $('nameEnglish').value.trim(),
+        consentMedia: $('consentMedia').checked,
+        consentData: $('consentData').checked,
+        createdAt: new Date().toISOString(),
+      };
+
+      // ตรวจสอบ
+      let firstBad = null;
+      const fail = (el, cond) => { setInvalid(el, cond); if (cond && !firstBad) firstBad = fieldOf(el); return cond; };
+      // ตั้งข้อความเตือนใต้ช่องกลับเป็นค่าเริ่มต้น (กรณีตรวจรูปแบบ)
+      setErrText($('email'), 'อีเมลไม่ถูกต้อง');
+      setErrText($('phone'), 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)');
+      fail($('fullName'), !data.fullName);
+      fail($('institution'), !data.institution);
+      fail($('email'), !validEmail(data.email));
+      fail($('phone'), !validPhone(data.phone));
+      fail($('statusChoices'), !data.status);
+      fail($('modeChoices'), !data.attendMode);
+      fail($('nameEnglish'), !data.nameEnglish);
+      fail($('consentMedia'), !data.consentMedia);
+      fail($('consentData'), !data.consentData);
+
+      if (firstBad) {
+        firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showMsg('กรุณาตรวจสอบข้อมูลที่ยังไม่ถูกต้อง', 'error');
+        return;
+      }
+
+      // กันอีเมล/เบอร์โทรซ้ำ (ตัดช่องว่างและขีดออกก่อนเทียบเบอร์)
+      const list = loadAll();
+      if (list.some(r => r.email.toLowerCase() === data.email.toLowerCase())) {
+        setErrText($('email'), 'อีเมลนี้ถูกใช้ลงทะเบียนแล้ว');
+        setInvalid($('email'), true);
+        showMsg('อีเมลนี้ถูกใช้ลงทะเบียนแล้ว', 'error');
+        fieldOf($('email')).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (list.some(r => normPhone(r.phone) === normPhone(data.phone))) {
+        setErrText($('phone'), 'เบอร์โทรนี้ถูกใช้ลงทะเบียนแล้ว');
+        setInvalid($('phone'), true);
+        showMsg('เบอร์โทรนี้ถูกใช้ลงทะเบียนแล้ว', 'error');
+        fieldOf($('phone')).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // บันทึกลงเครื่อง
+      list.push(data);
+      saveAll(list);
+
+      // แสดงหน้าสำเร็จ
+      form.innerHTML = `
+        <div class="card done">
+          <div class="check">✓</div>
+          <h2>ลงทะเบียนสำเร็จ!</h2>
+          <p>ขอบคุณที่ลงทะเบียนเข้าร่วมงานสัมมนา<br>เราได้บันทึกข้อมูลของคุณเรียบร้อยแล้ว</p>
+          <button type="button" onclick="location.reload()">ลงทะเบียนเพิ่ม</button>
+        </div>`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ================== การเข้าสู่ระบบผู้ดูแล ==================
+    const isAuthed = () => sessionStorage.getItem(AUTH_KEY) === '1';
+    function show(view) {
+      $('formView').style.display = view === 'form' ? 'block' : 'none';
+      $('loginView').style.display = view === 'login' ? 'block' : 'none';
+      $('adminView').style.display = view === 'admin' ? 'block' : 'none';
+      window.scrollTo(0, 0);
+    }
+    function gotoAdmin() { show('admin'); renderAdmin(); }
+    function gotoLogin() { show('login'); $('loginErr').textContent = ''; $('pwd').value = ''; $('pwd').focus(); }
+
+    $('toAdmin').onclick = () => { isAuthed() ? gotoAdmin() : gotoLogin(); };
+    $('loginBack').onclick = () => show('form');
+
+    function doLogin() {
+      if ($('pwd').value === ADMIN_PASSWORD) {
+        sessionStorage.setItem(AUTH_KEY, '1');
+        gotoAdmin();
+      } else {
+        $('loginErr').textContent = 'รหัสผ่านไม่ถูกต้อง';
+        $('pwd').select();
+      }
+    }
+    $('loginBtn').onclick = doLogin;
+    $('pwd').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+    $('logoutBtn').onclick = () => { sessionStorage.removeItem(AUTH_KEY); show('form'); };
+
+    // ================== หน้ารายชื่อ ==================
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const channelText = r => (r.heardFrom === 'อื่น ๆ' && r.heardFromOther) ? 'อื่น ๆ: ' + r.heardFromOther : (r.heardFrom || '');
+    function expectText(r) {
+      const exp = [...(r.expectations || [])];
+      if (r.expectations && r.expectations.includes('อื่น ๆ') && r.expectationsOther) exp[exp.indexOf('อื่น ๆ')] = 'อื่น ๆ: ' + r.expectationsOther;
+      return exp.join(', ');
+    }
+
+    function renderAdmin() {
+      // กันการเรียกโดยไม่ได้ล็อกอิน
+      if (!isAuthed()) { gotoLogin(); return; }
+      const all = loadAll();
+      const q = $('search').value.trim().toLowerCase();
+      const list = all.filter(r => !q ||
+        [r.fullName, r.email, r.institution, r.phone, r.nameEnglish, r.studentId].some(v => String(v || '').toLowerCase().includes(q)));
+
+      $('count').textContent = all.length + ' คน';
+      $('empty').style.display = list.length ? 'none' : 'block';
+      $('table').style.display = list.length ? 'table' : 'none';
+
+      $('tbody').innerHTML = list.map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${esc(r.fullName)}</td>
+          <td>${esc(r.studentId) || '<span class="no">-</span>'}</td>
+          <td class="wrap-cell">${esc(r.institution)}</td>
+          <td>${esc(r.yearLevel) || '<span class="no">-</span>'}</td>
+          <td>${esc(r.email)}</td>
+          <td>${esc(r.phone)}</td>
+          <td><span class="pill">${esc(r.status)}</span></td>
+          <td><span class="pill mode">${esc(r.attendMode)}</span></td>
+          <td class="wrap-cell">${esc(channelText(r)) || '<span class="no">-</span>'}</td>
+          <td class="wrap-cell">${esc(expectText(r)) || '<span class="no">-</span>'}</td>
+          <td class="wrap-cell">${esc(r.questions) || '<span class="no">-</span>'}</td>
+          <td>${esc(r.nameEnglish)}</td>
+          <td>${r.consentMedia ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'}</td>
+          <td>${r.consentData ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'}</td>
+          <td class="muted">${new Date(r.createdAt).toLocaleString('th-TH')}</td>
+          <td><button class="btn danger" data-id="${esc(r.id)}">ลบ</button></td>
+        </tr>`).join('');
+
+      document.querySelectorAll('button[data-id]').forEach(b => {
+        b.onclick = () => {
+          if (!confirm('ต้องการลบรายการนี้ใช่หรือไม่?')) return;
+          saveAll(loadAll().filter(x => x.id !== b.getAttribute('data-id')));
+          renderAdmin();
+        };
+      });
+    }
+    $('search').addEventListener('input', renderAdmin);
+
+    // ล้างข้อมูลทั้งหมด
+    $('clearBtn').onclick = () => {
+      if (!loadAll().length) return alert('ยังไม่มีข้อมูล');
+      if (!confirm('ลบข้อมูลผู้ลงทะเบียนทั้งหมดใช่หรือไม่? การกระทำนี้ย้อนกลับไม่ได้')) return;
+      localStorage.removeItem(STORE_KEY);
+      renderAdmin();
+    };
+
+    // ดาวน์โหลด CSV
+    const csvEscape = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    $('exportBtn').onclick = () => {
+      const list = loadAll();
+      if (!list.length) return alert('ยังไม่มีข้อมูลให้ส่งออก');
+      const header = ['ลำดับ', 'ชื่อ-นามสกุล', 'รหัสนักศึกษา', 'มหาวิทยาลัย/คณะ/สาขา', 'ชั้นปี', 'อีเมล', 'เบอร์โทร',
+        'สถานะ', 'รูปแบบ', 'ทราบข่าวจาก', 'สิ่งที่คาดหวัง', 'คำถามถึงวิทยากร', 'ชื่อ-สกุล(อังกฤษ)',
+        'ยินยอมถ่ายภาพ', 'ยินยอมเก็บข้อมูล', 'เวลาลงทะเบียน'];
+      const rows = list.map((r, i) => [
+        i + 1, r.fullName, r.studentId || '', r.institution, r.yearLevel || '', r.email, r.phone,
+        r.status, r.attendMode, channelText(r), expectText(r), r.questions || '', r.nameEnglish,
+        r.consentMedia ? 'ยินยอม' : '', r.consentData ? 'ยินยอม' : '', new Date(r.createdAt).toLocaleString('th-TH'),
+      ]);
+      const csv = [header, ...rows].map(row => row.map(csvEscape).join(',')).join('\r\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'seminar-registrations.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+  </script>
+</body>
+</html>
