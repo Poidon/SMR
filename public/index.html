@@ -202,7 +202,7 @@
         </div>
 
         <div class="field">
-          <label class="q">9. ทราบข่าวงานนี้จากช่องทางใด</label>
+          <label class="q">9. ทราบข่าวงานนี้จากช่องทางใด <span class="hint">(เลือกได้มากกว่า 1)</span></label>
           <div class="choices" id="channelChoices"></div>
           <input type="text" class="other-input" id="heardFromOther" placeholder="โปรดระบุช่องทางอื่น ๆ" style="display:none" />
         </div>
@@ -275,14 +275,15 @@
 
     buildRadios(document.getElementById('statusChoices'), 'status', STATUSES);
     buildRadios(document.getElementById('modeChoices'), 'attendMode', MODES);
-    buildRadios(document.getElementById('channelChoices'), 'heardFrom', CHANNELS);
+    buildChecks(document.getElementById('channelChoices'), 'heardFrom', CHANNELS);
     buildChecks(document.getElementById('expectChoices'), 'expectations', EXPECTATIONS);
 
     // แสดง/ซ่อนช่อง "อื่น ๆ"
     const heardOther = document.getElementById('heardFromOther');
-    document.querySelectorAll('input[name=heardFrom]').forEach(r => {
-      r.addEventListener('change', () => {
-        heardOther.style.display = (r.value === 'อื่น ๆ' && r.checked) ? 'block' : 'none';
+    document.querySelectorAll('input[name=heardFrom]').forEach(c => {
+      c.addEventListener('change', () => {
+        const other = document.querySelector('input[name=heardFrom][value="อื่น ๆ"]');
+        heardOther.style.display = other && other.checked ? 'block' : 'none';
       });
     });
     const expectOther = document.getElementById('expectationsOther');
@@ -368,7 +369,7 @@
         phone: $('phone').value.trim(),
         status: radioValue('status'),
         attendMode: radioValue('attendMode'),
-        heardFrom: radioValue('heardFrom'),
+        heardFrom: [...document.querySelectorAll('input[name=heardFrom]:checked')].map(c => c.value),
         heardFromOther: heardOther.value.trim(),
         expectations: [...document.querySelectorAll('input[name=expectations]:checked')].map(c => c.value),
         expectationsOther: expectOther.value.trim(),

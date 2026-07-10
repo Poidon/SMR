@@ -120,8 +120,9 @@
     }
 
     function channelText(r) {
-      if (r.heardFrom === 'อื่น ๆ' && r.heardFromOther) return 'อื่น ๆ: ' + r.heardFromOther;
-      return r.heardFrom || '';
+      const ch = Array.isArray(r.heardFrom) ? [...r.heardFrom] : (r.heardFrom ? [r.heardFrom] : []);
+      if (ch.includes('อื่น ๆ') && r.heardFromOther) ch[ch.indexOf('อื่น ๆ')] = 'อื่น ๆ: ' + r.heardFromOther;
+      return ch.join(', ');
     }
     function expectText(r) {
       const exp = [...(r.expectations || [])];

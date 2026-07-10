@@ -29,6 +29,13 @@ const EXPECTATIONS = ['ได้รับความรู้เพิ่มเ
 function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 function validPhone(v) { return /^[0-9]{9,10}$/.test(String(v).replace(/[\s-]/g, '')); }
 const normPhone = s => String(s).replace(/[\s-]/g, '');
+// แปลงค่าที่อ่านจากฐานข้อมูลให้เป็น array (รองรับทั้ง array, JSON string, และค่าเดี่ยวแบบเก่า)
+function toArray(v) {
+  if (Array.isArray(v)) return v;
+  if (v == null || v === '') return [];
+  try { const p = JSON.parse(v); return Array.isArray(p) ? p : (v ? [String(v)] : []); }
+  catch { return [String(v)]; }
+}
 const MAX_TEXT = 2000; // จำกัดความยาวข้อความยาว ๆ
 
 // ---------- ชั้นเก็บข้อมูล: PostgreSQL ----------
@@ -50,7 +57,7 @@ function createPgStore(url) {
     phone: r.phone,
     status: r.status,
     attendMode: r.attend_mode,
-    heardFrom: r.heard_from || '',
+    heardFrom: toArray(r.heard_from),
     heardFromOther: r.heard_from_other || '',
     expectations: Array.isArray(r.expectations) ? r.expectations : [],
     expectationsOther: r.expectations_other || '',
@@ -114,7 +121,7 @@ function createPgStore(url) {
            questions, name_english, consent_media, consent_data, created_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
         [rec.id, rec.fullName, rec.studentId, rec.institution, rec.yearLevel, rec.email, rec.phone,
-         normPhone(rec.phone), rec.status, rec.attendMode, rec.heardFrom, rec.heardFromOther,
+         normPhone(rec.phone), rec.status, rec.attendMode, JSON.stringify(rec.heardFrom), rec.heardFromOther,
          JSON.stringify(rec.expectations), rec.expectationsOther, rec.questions, rec.nameEnglish,
          rec.consentMedia, rec.consentData, rec.createdAt]);
     },
@@ -196,7 +203,9 @@ const server = http.createServer(async (req, res) => {
       const phone = clip(data.phone, 30);
       const status = clip(data.status, 50);
       const attendMode = clip(data.attendMode, 30);
-      const heardFrom = clip(data.heardFrom, 50);
+      let heardFrom = Array.isArray(data.heardFrom) ? data.heardFrom.map(x => clip(x, 50))
+        : (data.heardFrom ? [clip(data.heardFrom, 50)] : []);
+      heardFrom = heardFrom.filter(x => CHANNELS.includes(x));
       const heardFromOther = clip(data.heardFromOther, 300);
       let expectations = Array.isArray(data.expectations) ? data.expectations.map(x => clip(x, 100)) : [];
       expectations = expectations.filter(x => EXPECTATIONS.includes(x));
@@ -213,7 +222,6 @@ const server = http.createServer(async (req, res) => {
       if (!validPhone(phone)) return sendJson(res, 400, { ok: false, error: 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)' });
       if (!STATUSES.includes(status)) return sendJson(res, 400, { ok: false, error: 'กรุณาเลือกสถานะผู้เข้าร่วม' });
       if (!MODES.includes(attendMode)) return sendJson(res, 400, { ok: false, error: 'กรุณาเลือกรูปแบบการเข้าร่วม' });
-      if (heardFrom && !CHANNELS.includes(heardFrom)) return sendJson(res, 400, { ok: false, error: 'ช่องทางที่ทราบข่าวไม่ถูกต้อง' });
       if (!nameEnglish) return sendJson(res, 400, { ok: false, error: 'กรุณากรอกชื่อ-นามสกุล (ภาษาอังกฤษ) สำหรับออกเกียรติบัตร' });
       if (!consentMedia) return sendJson(res, 400, { ok: false, error: 'กรุณายินยอมให้บันทึกภาพ/วิดีโอภายในงาน' });
       if (!consentData) return sendJson(res, 400, { ok: false, error: 'กรุณายินยอมให้เก็บข้อมูลเพื่อใช้ในการจัดกิจกรรม' });
@@ -275,7 +283,9 @@ const server = http.createServer(async (req, res) => {
         'อีเมล', 'เบอร์โทร', 'สถานะ', 'รูปแบบ', 'ทราบข่าวจาก', 'สิ่งที่คาดหวัง',
         'คำถามถึงวิทยากร', 'ชื่อ-สกุล(อังกฤษ)', 'ยินยอมถ่ายภาพ', 'ยินยอมเก็บข้อมูล', 'เวลาลงทะเบียน'];
       const rows = list.map((r, i) => {
-        const channel = r.heardFrom === 'อื่น ๆ' && r.heardFromOther ? `อื่น ๆ: ${r.heardFromOther}` : r.heardFrom;
+        const ch = toArray(r.heardFrom);
+        if (ch.includes('อื่น ๆ') && r.heardFromOther) ch[ch.indexOf('อื่น ๆ')] = `อื่น ๆ: ${r.heardFromOther}`;
+        const channel = ch.join(', ');
         const exp = [...(r.expectations || [])];
         if (r.expectations && r.expectations.includes('อื่น ๆ') && r.expectationsOther) {
           exp[exp.indexOf('อื่น ๆ')] = `อื่น ๆ: ${r.expectationsOther}`;
