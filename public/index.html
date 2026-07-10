@@ -6,36 +6,46 @@
   <title>THINK WITH DATA, DECIDE WITH AI — ลงทะเบียน</title>
   <style>
     :root {
-      --brand: #4f46e5;
-      --brand-dark: #4338ca;
-      --bg: #f1f5f9;
-      --card: #ffffff;
-      --text: #1e293b;
-      --muted: #64748b;
-      --border: #e2e8f0;
-      --error: #dc2626;
-      --ok: #16a34a;
+      --gold: #e6c15a;
+      --gold-soft: #f6dc83;
+      --gold-deep: #c6981f;
+      --brand: #e6c15a;          /* alias เดิม → ทอง */
+      --brand-dark: #f6dc83;
+      --bg: #08080a;
+      --text: #ededf1;
+      --muted: #99a1ad;
+      --surface: rgba(255, 255, 255, .045);
+      --border: rgba(255, 255, 255, .10);
+      --border-strong: rgba(255, 255, 255, .17);
+      --error: #f87171;
+      --ok: #34d399;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Segoe UI", "Sarabun", "Prompt", system-ui, sans-serif;
-      background: var(--bg);
       color: var(--text);
       line-height: 1.6;
+      background:
+        radial-gradient(1100px 520px at 50% -8%, rgba(230, 193, 90, .13), transparent 60%),
+        radial-gradient(900px 500px at 90% 108%, rgba(230, 193, 90, .10), transparent 55%),
+        #08080a;
+      background-attachment: fixed;
+      min-height: 100vh;
     }
     .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
     header.hero {
       position: relative; overflow: hidden; text-align: center;
       background:
-        radial-gradient(circle at 82% 118%, rgba(230, 193, 90, .38), transparent 46%),
-        radial-gradient(circle at 12% -10%, rgba(230, 193, 90, .12), transparent 40%),
+        radial-gradient(circle at 82% 118%, rgba(230, 193, 90, .4), transparent 46%),
+        radial-gradient(circle at 12% -10%, rgba(230, 193, 90, .14), transparent 40%),
         #0b0b0d;
       color: #fff;
-      border-radius: 18px;
-      padding: 44px 26px 40px;
-      margin-bottom: 20px;
-      box-shadow: 0 12px 34px rgba(0, 0, 0, .35);
+      border: 1px solid rgba(230, 193, 90, .18);
+      border-radius: 20px;
+      padding: 46px 26px 42px;
+      margin-bottom: 22px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .5);
     }
     header.hero h1 {
       margin: 0; line-height: 1.03; text-transform: uppercase; letter-spacing: .015em;
@@ -48,7 +58,7 @@
       background: linear-gradient(180deg, #f6dc83 0%, #e6c15a 45%, #c6981f 100%);
       -webkit-background-clip: text; background-clip: text; color: transparent;
     }
-    .hero-date { margin-top: 20px; color: #e6c15a; font-weight: 800; letter-spacing: .1em;
+    .hero-date { margin-top: 20px; color: var(--gold); font-weight: 800; letter-spacing: .1em;
       font-size: clamp(18px, 4.5vw, 26px); }
     .hero-time { color: #cbd5e1; margin-top: 3px; letter-spacing: .18em; font-size: 15px; }
     .hero-venue { color: #9aa3b2; margin-top: 14px; font-size: 14px; line-height: 1.5; }
@@ -56,40 +66,48 @@
       background: linear-gradient(180deg, #f6dc83, #d9a92e); color: #1a1400; font-weight: 800; font-size: 15px;
       box-shadow: 0 6px 18px rgba(230, 193, 90, .3); }
     .form-hint { text-align: center; color: var(--muted); font-size: 14px; margin: 0 0 20px; }
-    .form-hint .req { color: var(--error); }
+    .form-hint .req { color: var(--gold); }
     .card {
-      background: var(--card);
-      border-radius: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
       padding: 24px 22px;
-      box-shadow: 0 2px 12px rgba(15, 23, 42, .06);
       margin-bottom: 18px;
+      box-shadow: 0 10px 34px rgba(0, 0, 0, .35);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     .card h2 {
-      font-size: 16px; margin: 0 0 18px; padding-bottom: 12px;
-      border-bottom: 2px solid var(--border); color: var(--brand-dark);
+      font-size: 15px; margin: 0 0 18px; padding-bottom: 12px; letter-spacing: .03em;
+      border-bottom: 1px solid var(--border); color: var(--gold); text-transform: uppercase;
     }
     .field { margin-bottom: 18px; }
     .field:last-child { margin-bottom: 0; }
-    label.q { display: block; font-weight: 600; margin-bottom: 8px; font-size: 15px; }
-    .req { color: var(--error); }
+    label.q { display: block; font-weight: 600; margin-bottom: 8px; font-size: 15px; color: var(--text); }
+    .req { color: var(--gold); }
     .hint { font-weight: 400; color: var(--muted); font-size: 13px; }
     input[type=text], input[type=email], input[type=tel], textarea, select {
-      width: 100%; padding: 11px 13px; border: 1px solid var(--border);
-      border-radius: 10px; font-size: 15px; font-family: inherit; background: #fff; color: var(--text);
+      width: 100%; padding: 12px 14px; border: 1px solid var(--border-strong);
+      border-radius: 11px; font-size: 15px; font-family: inherit;
+      background: rgba(255, 255, 255, .04); color: var(--text); transition: .15s;
     }
+    input::placeholder, textarea::placeholder { color: #6b7280; }
     input:focus, textarea:focus, select:focus {
-      outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(79, 70, 229, .15);
+      outline: none; border-color: var(--gold);
+      background: rgba(255, 255, 255, .06);
+      box-shadow: 0 0 0 3px rgba(230, 193, 90, .18);
     }
+    select option { background: #16161c; color: var(--text); }
     textarea { resize: vertical; min-height: 84px; }
     .choices { display: flex; flex-direction: column; gap: 10px; }
     .choices.row { flex-direction: row; flex-wrap: wrap; gap: 12px; }
     .opt {
-      display: flex; align-items: center; gap: 10px; padding: 11px 14px;
-      border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: .15s;
-      font-size: 15px;
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+      border: 1px solid var(--border-strong); border-radius: 11px; cursor: pointer; transition: .15s;
+      font-size: 15px; background: rgba(255, 255, 255, .02);
     }
-    .opt:hover { border-color: var(--brand); background: #f8faff; }
-    .opt input { width: 18px; height: 18px; accent-color: var(--brand); margin: 0; cursor: pointer; }
+    .opt:hover { border-color: var(--gold); background: rgba(230, 193, 90, .09); }
+    .opt input { width: 18px; height: 18px; accent-color: var(--gold); margin: 0; cursor: pointer; }
     .choices.row .opt { flex: 1 1 140px; }
     .other-input { margin-top: 8px; }
     .consent .opt { border-style: dashed; }
@@ -97,39 +115,44 @@
     .consent .opt input[type=checkbox] {
       appearance: none; -webkit-appearance: none;
       width: 22px; height: 22px; flex: 0 0 auto; margin: 0; cursor: pointer;
-      border: 2px solid var(--border); border-radius: 50%; position: relative;
-      background: #fff; transition: .15s;
+      border: 2px solid var(--border-strong); border-radius: 50%; position: relative;
+      background: transparent; transition: .15s;
     }
-    .consent .opt input[type=checkbox]:checked { background: var(--brand); border-color: var(--brand); }
+    .consent .opt input[type=checkbox]:checked {
+      background: linear-gradient(180deg, #f6dc83, #d9a92e); border-color: var(--gold);
+    }
     .consent .opt input[type=checkbox]:checked::after {
       content: ''; position: absolute; left: 7px; top: 3px;
-      width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+      width: 5px; height: 10px; border: solid #1a1400; border-width: 0 2px 2px 0; transform: rotate(45deg);
     }
     .err { color: var(--error); font-size: 13px; margin-top: 6px; display: none; }
     .field.invalid .err { display: block; }
     .field.invalid input, .field.invalid textarea, .field.invalid select { border-color: var(--error); }
     button.submit {
-      width: 100%; padding: 15px; font-size: 17px; font-weight: 700; color: #fff;
-      background: var(--brand); border: none; border-radius: 12px; cursor: pointer;
-      transition: .15s; box-shadow: 0 6px 18px rgba(79, 70, 229, .3);
+      width: 100%; padding: 16px; font-size: 17px; font-weight: 800; color: #1a1400;
+      background: linear-gradient(180deg, #f6dc83, #d9a92e); border: none; border-radius: 13px; cursor: pointer;
+      transition: .15s; box-shadow: 0 10px 26px rgba(230, 193, 90, .28); letter-spacing: .01em;
     }
-    button.submit:hover { background: var(--brand-dark); }
-    button.submit:disabled { opacity: .6; cursor: not-allowed; }
-    #msg { margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: 14px; display: none; }
+    button.submit:hover { filter: brightness(1.06); box-shadow: 0 12px 30px rgba(230, 193, 90, .4); }
+    button.submit:disabled { opacity: .55; cursor: not-allowed; filter: none; }
+    #msg { margin-top: 14px; padding: 12px 14px; border-radius: 11px; font-size: 14px; display: none; }
     #msg.show { display: block; }
-    #msg.error { background: #fef2f2; color: var(--error); border: 1px solid #fecaca; }
-    #msg.success { background: #f0fdf4; color: var(--ok); border: 1px solid #bbf7d0; }
+    #msg.error { background: rgba(248, 113, 113, .12); color: #fca5a5; border: 1px solid rgba(248, 113, 113, .35); }
+    #msg.success { background: rgba(52, 211, 153, .12); color: #6ee7b7; border: 1px solid rgba(52, 211, 153, .35); }
     .done { text-align: center; padding: 40px 20px; }
     .done .check {
-      width: 72px; height: 72px; border-radius: 50%; background: var(--ok); color: #fff;
-      font-size: 40px; line-height: 72px; margin: 0 auto 16px;
+      width: 74px; height: 74px; border-radius: 50%;
+      background: linear-gradient(180deg, #f6dc83, #d9a92e); color: #1a1400;
+      font-size: 40px; line-height: 74px; margin: 0 auto 16px;
+      box-shadow: 0 10px 26px rgba(230, 193, 90, .35);
     }
-    .done h2 { border: none; color: var(--ok); font-size: 22px; }
+    .done h2 { border: none; color: var(--gold); font-size: 22px; text-transform: none; }
+    .done p { color: var(--muted); }
     .done button {
-      margin-top: 18px; background: var(--brand); color: #fff; border: none;
-      padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+      margin-top: 18px; background: linear-gradient(180deg, #f6dc83, #d9a92e); color: #1a1400; border: none;
+      padding: 12px 26px; border-radius: 11px; font-size: 15px; font-weight: 700; cursor: pointer;
     }
-    .done button:hover { background: var(--brand-dark); }
+    .done button:hover { filter: brightness(1.06); }
     .footer-note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 20px; }
   </style>
 </head>
