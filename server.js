@@ -37,6 +37,41 @@ function toArray(v) {
   catch { return [String(v)]; }
 }
 const MAX_TEXT = 2000; // จำกัดความยาวข้อความยาว ๆ
+const genToken = () => require('crypto').randomBytes(16).toString('hex');
+const attLabel = a => a === 'yes' ? 'มา' : a === 'no' ? 'ไม่มา' : 'ยังไม่ระบุ';
+
+// ---------- อีเมล (เตรียมระบบไว้ ยังไม่ต้องผูก provider ก็ได้) ----------
+// ตั้งค่าเปิดใช้งานจริงภายหลังผ่าน env: RESEND_API_KEY, EMAIL_FROM, PUBLIC_URL
+function buildRsvpEmail(rec, baseUrl) {
+  const link = `${baseUrl}/rsvp?token=${rec.rsvpToken}`;
+  const subject = 'ยืนยันการเข้าร่วมงานสัมมนา THINK WITH DATA, DECIDE WITH AI';
+  const html = `<div style="font-family:'Segoe UI',sans-serif;line-height:1.7;color:#1e293b;max-width:520px;margin:auto">
+    <h2 style="color:#4338ca">เรียน คุณ${rec.fullName}</h2>
+    <p>ขอบคุณที่ลงทะเบียนเข้าร่วมงานสัมมนา <b>THINK WITH DATA, DECIDE WITH AI</b><br>
+    วันที่ 3 เมษายน 2569 เวลา 13:00–16:00 ณ Siam University (Building 19, Hall Of Fame)</p>
+    <p>กรุณายืนยันการเข้าร่วมของท่านโดยคลิกปุ่มด้านล่าง:</p>
+    <p><a href="${link}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 26px;border-radius:10px;font-weight:bold">ยืนยันการเข้าร่วม (มา / ไม่มา)</a></p>
+    <p style="color:#64748b;font-size:13px">หากปุ่มกดไม่ได้ ให้คัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์:<br>${link}</p>
+  </div>`;
+  const text = `เรียน คุณ${rec.fullName}\nกรุณายืนยันการเข้าร่วมงานสัมมนา: ${link}`;
+  return { subject, html, text };
+}
+async function sendEmail(to, subject, html, text) {
+  // เลือก provider จาก env; ถ้ายังไม่ตั้งค่า จะไม่ส่งจริง (คืน not-configured)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: process.env.EMAIL_FROM || 'onboarding@resend.dev', to: [to], subject, html, text }),
+      });
+      if (!r.ok) return { sent: false, reason: 'ส่งไม่สำเร็จ (Resend ' + r.status + ')' };
+      return { sent: true, provider: 'resend' };
+    } catch { return { sent: false, reason: 'เชื่อมต่อผู้ให้บริการอีเมลไม่ได้' }; }
+  }
+  // TODO: เพิ่ม SendGrid / SMTP ได้ที่นี่ในอนาคต
+  return { sent: false, reason: 'ยังไม่ได้ตั้งค่าการส่งอีเมล (ยังไม่มี provider)' };
+}
 
 // ---------- ชั้นเก็บข้อมูล: PostgreSQL ----------
 function createPgStore(url) {
@@ -65,6 +100,12 @@ function createPgStore(url) {
     nameEnglish: r.name_english,
     consentMedia: !!r.consent_media,
     consentData: !!r.consent_data,
+    attendance: r.attendance || '',
+    absenceReason: r.absence_reason || '',
+    attendanceSource: r.attendance_source || '',
+    rsvpToken: r.rsvp_token || '',
+    rsvpAt: r.rsvp_at ? ((r.rsvp_at instanceof Date) ? r.rsvp_at.toISOString() : r.rsvp_at) : null,
+    emailSentAt: r.email_sent_at ? ((r.email_sent_at instanceof Date) ? r.email_sent_at.toISOString() : r.email_sent_at) : null,
     createdAt: (r.created_at instanceof Date) ? r.created_at.toISOString() : r.created_at,
   });
 
@@ -90,13 +131,28 @@ function createPgStore(url) {
           name_english       TEXT NOT NULL,
           consent_media      BOOLEAN NOT NULL DEFAULT FALSE,
           consent_data       BOOLEAN NOT NULL DEFAULT FALSE,
+          attendance         TEXT NOT NULL DEFAULT '',
+          absence_reason     TEXT,
+          attendance_source  TEXT,
+          rsvp_token         TEXT,
+          rsvp_at            TIMESTAMPTZ,
+          email_sent_at      TIMESTAMPTZ,
           created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
         )`);
+      // เผื่อตารางเดิมยังไม่มีคอลัมน์ที่เพิ่มภายหลัง
+      await pool.query(`ALTER TABLE seminar_registrations ADD COLUMN IF NOT EXISTS attendance TEXT NOT NULL DEFAULT ''`);
+      await pool.query(`ALTER TABLE seminar_registrations ADD COLUMN IF NOT EXISTS absence_reason TEXT`);
+      await pool.query(`ALTER TABLE seminar_registrations ADD COLUMN IF NOT EXISTS attendance_source TEXT`);
+      await pool.query(`ALTER TABLE seminar_registrations ADD COLUMN IF NOT EXISTS rsvp_token TEXT`);
+      await pool.query(`ALTER TABLE seminar_registrations ADD COLUMN IF NOT EXISTS rsvp_at TIMESTAMPTZ`);
+      await pool.query(`ALTER TABLE seminar_registrations ADD COLUMN IF NOT EXISTS email_sent_at TIMESTAMPTZ`);
       // กันอีเมล/เบอร์โทรซ้ำระดับฐานข้อมูล (กันกรณีลงทะเบียนพร้อมกัน)
       await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_sem_email
         ON seminar_registrations (lower(email))`);
       await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_sem_phone
         ON seminar_registrations (phone_norm)`);
+      await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_sem_token
+        ON seminar_registrations (rsvp_token)`);
     },
     async all() {
       const { rows } = await pool.query(
@@ -118,12 +174,38 @@ function createPgStore(url) {
         `INSERT INTO seminar_registrations
           (id, full_name, student_id, institution, year_level, email, phone, phone_norm,
            status, attend_mode, heard_from, heard_from_other, expectations, expectations_other,
-           questions, name_english, consent_media, consent_data, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+           questions, name_english, consent_media, consent_data, created_at, rsvp_token)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
         [rec.id, rec.fullName, rec.studentId, rec.institution, rec.yearLevel, rec.email, rec.phone,
          normPhone(rec.phone), rec.status, rec.attendMode, JSON.stringify(rec.heardFrom), rec.heardFromOther,
          JSON.stringify(rec.expectations), rec.expectationsOther, rec.questions, rec.nameEnglish,
-         rec.consentMedia, rec.consentData, rec.createdAt]);
+         rec.consentMedia, rec.consentData, rec.createdAt, rec.rsvpToken]);
+    },
+    async getById(id) {
+      const { rows } = await pool.query(`SELECT * FROM seminar_registrations WHERE id=$1 LIMIT 1`, [id]);
+      return rows[0] ? mapRow(rows[0]) : null;
+    },
+    async getByToken(token) {
+      const { rows } = await pool.query(`SELECT * FROM seminar_registrations WHERE rsvp_token=$1 LIMIT 1`, [token]);
+      return rows[0] ? mapRow(rows[0]) : null;
+    },
+    async setAttendance(id, attendance, reason, source) {
+      const { rowCount } = await pool.query(
+        `UPDATE seminar_registrations
+           SET attendance=$2, absence_reason=$3, attendance_source=$4,
+               rsvp_at = CASE WHEN $4='self' THEN now() ELSE rsvp_at END
+         WHERE id=$1`, [id, attendance, reason, source]);
+      return rowCount > 0;
+    },
+    async setAttendanceByToken(token, attendance, reason) {
+      const { rows } = await pool.query(
+        `UPDATE seminar_registrations
+           SET attendance=$2, absence_reason=$3, attendance_source='self', rsvp_at=now()
+         WHERE rsvp_token=$1 RETURNING id`, [token, attendance, reason]);
+      return rows.length > 0;
+    },
+    async markEmailSent(id) {
+      await pool.query(`UPDATE seminar_registrations SET email_sent_at=now() WHERE id=$1`, [id]);
     },
     async remove(id) {
       await pool.query(`DELETE FROM seminar_registrations WHERE id=$1`, [id]);
@@ -147,6 +229,22 @@ function createFileStore() {
     async emailExists(email) { return read().some(r => r.email.toLowerCase() === email.toLowerCase()); },
     async phoneExists(phone) { return read().some(r => normPhone(r.phone) === normPhone(phone)); },
     async insert(rec) { const l = read(); l.push(rec); write(l); },
+    async getById(id) { return read().find(r => r.id === id) || null; },
+    async getByToken(token) { return read().find(r => r.rsvpToken === token) || null; },
+    async setAttendance(id, attendance, reason, source) {
+      const l = read(); const r = l.find(x => x.id === id); if (!r) return false;
+      r.attendance = attendance; r.absenceReason = reason; r.attendanceSource = source;
+      if (source === 'self') r.rsvpAt = new Date().toISOString();
+      write(l); return true;
+    },
+    async setAttendanceByToken(token, attendance, reason) {
+      const l = read(); const r = l.find(x => x.rsvpToken === token); if (!r) return false;
+      r.attendance = attendance; r.absenceReason = reason; r.attendanceSource = 'self'; r.rsvpAt = new Date().toISOString();
+      write(l); return true;
+    },
+    async markEmailSent(id) {
+      const l = read(); const r = l.find(x => x.id === id); if (r) { r.emailSentAt = new Date().toISOString(); write(l); }
+    },
     async remove(id) { const l = read().filter(r => r.id !== id); write(l); return l.length; },
   };
 }
@@ -234,6 +332,8 @@ const server = http.createServer(async (req, res) => {
         status, attendMode, heardFrom, heardFromOther,
         expectations, expectationsOther, questions, nameEnglish,
         consentMedia, consentData,
+        attendance: '', absenceReason: '', attendanceSource: '',
+        rsvpToken: genToken(), rsvpAt: null, emailSentAt: null,
         createdAt: new Date().toISOString(),
       };
       try {
@@ -274,23 +374,82 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, total });
     }
 
+    // --- API: ข้อมูลสำหรับหน้า RSVP (สาธารณะ ใช้ token) ---
+    if (req.method === 'GET' && p === '/api/rsvp') {
+      const token = String(url.searchParams.get('token') || '').trim();
+      const rec = token ? await store.getByToken(token) : null;
+      if (!rec) return sendJson(res, 404, { ok: false, error: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+      return sendJson(res, 200, {
+        ok: true, fullName: rec.fullName,
+        attendance: rec.attendance || '', absenceReason: rec.absenceReason || '',
+      });
+    }
+
+    // --- API: ผู้ลงทะเบียนยืนยันการเข้าร่วมเอง (สาธารณะ ใช้ token) ---
+    if (req.method === 'POST' && p === '/api/rsvp') {
+      const body = await readBody(req);
+      let d; try { d = JSON.parse(body); } catch { return sendJson(res, 400, { ok: false, error: 'ข้อมูลไม่ถูกต้อง' }); }
+      const token = String(d.token || '').trim();
+      const attendance = (d.attendance === 'yes' || d.attendance === 'no') ? d.attendance : '';
+      const reason = attendance === 'no' ? clip(d.absenceReason, 500) : '';
+      if (!token) return sendJson(res, 400, { ok: false, error: 'ลิงก์ไม่ถูกต้อง' });
+      if (!attendance) return sendJson(res, 400, { ok: false, error: 'กรุณาเลือกว่าจะเข้าร่วมหรือไม่' });
+      const ok = await store.setAttendanceByToken(token, attendance, reason);
+      if (!ok) return sendJson(res, 404, { ok: false, error: 'ลิงก์ไม่ถูกต้องหรือหมดอายุ' });
+      return sendJson(res, 200, { ok: true });
+    }
+
+    // --- API: แอดมินมาร์คสถานะการเข้าร่วม (ต้องมีรหัสผ่าน) ---
+    if (req.method === 'POST' && p.startsWith('/api/attendance/')) {
+      if (!isAuthed(req, url)) return sendJson(res, 401, { ok: false, error: 'รหัสผ่านไม่ถูกต้อง' });
+      const id = decodeURIComponent(p.split('/').pop());
+      const body = await readBody(req);
+      let d; try { d = JSON.parse(body); } catch { return sendJson(res, 400, { ok: false, error: 'ข้อมูลไม่ถูกต้อง' }); }
+      const attendance = (d.attendance === 'yes' || d.attendance === 'no') ? d.attendance : '';
+      const reason = attendance === 'no' ? clip(d.absenceReason, 500) : '';
+      const ok = await store.setAttendance(id, attendance, reason, 'admin');
+      if (!ok) return sendJson(res, 404, { ok: false, error: 'ไม่พบรายการนี้' });
+      return sendJson(res, 200, { ok: true });
+    }
+
+    // --- API: ส่งอีเมลเชิญยืนยัน (ต้องมีรหัสผ่าน) ---
+    if (req.method === 'POST' && p.startsWith('/api/send-email/')) {
+      if (!isAuthed(req, url)) return sendJson(res, 401, { ok: false, error: 'รหัสผ่านไม่ถูกต้อง' });
+      const id = decodeURIComponent(p.split('/').pop());
+      const rec = await store.getById(id);
+      if (!rec) return sendJson(res, 404, { ok: false, error: 'ไม่พบรายการนี้' });
+      const proto = req.headers['x-forwarded-proto'] || 'http';
+      const baseUrl = process.env.PUBLIC_URL || `${proto}://${req.headers.host}`;
+      const { subject, html, text } = buildRsvpEmail(rec, baseUrl);
+      const result = await sendEmail(rec.email, subject, html, text);
+      const rsvpLink = `${baseUrl}/rsvp?token=${rec.rsvpToken}`;
+      if (result.sent) { await store.markEmailSent(id); return sendJson(res, 200, { ok: true, sent: true }); }
+      // ยังไม่ได้ตั้งค่า provider → ส่งลิงก์ RSVP กลับไปให้แอดมินคัดลอกส่งเองได้
+      return sendJson(res, 200, { ok: false, sent: false, error: result.reason, rsvpLink });
+    }
+
     // --- ดาวน์โหลด CSV (ต้องมีรหัสผ่าน) ---
     if (req.method === 'GET' && p === '/api/export.csv') {
       if (!isAuthed(req, url)) { res.writeHead(401); res.end('unauthorized'); return; }
       const list = await store.all();
       const header = ['ลำดับ', 'ชื่อ-นามสกุล', 'รหัสนักศึกษา', 'มหาวิทยาลัย/คณะ/สาขา', 'ชั้นปี',
         'อีเมล', 'เบอร์โทร', 'สถานะ', 'รูปแบบ', 'ทราบข่าวจาก', 'สิ่งที่คาดหวัง',
-        'คำถามถึงวิทยากร', 'ชื่อ-สกุล(อังกฤษ)', 'ยินยอมถ่ายภาพ', 'ยินยอมเก็บข้อมูล', 'เวลาลงทะเบียน'];
+        'คำถามถึงวิทยากร', 'ชื่อ-สกุล(อังกฤษ)', 'ยินยอมถ่ายภาพ', 'ยินยอมเก็บข้อมูล', 'เวลาลงทะเบียน',
+        'สถานะเข้าร่วม', 'เหตุผลที่ไม่มา', 'ยืนยันโดย', 'ยืนยันเมื่อ', 'ส่งอีเมลเมื่อ'];
       const rows = list.map((r, i) => {
         const ch = toArray(r.heardFrom);
         if (ch.includes('อื่น ๆ') && r.heardFromOther) ch[ch.indexOf('อื่น ๆ')] = `อื่น ๆ: ${r.heardFromOther}`;
         const channel = ch.join(', ');
         const exp = Array.isArray(r.expectations) ? r.expectations.join(', ') : (r.expectations || '');
+        const srcLabel = r.attendanceSource === 'self' ? 'ผู้ลงทะเบียน' : r.attendanceSource === 'admin' ? 'แอดมิน' : '';
         return [
           i + 1, r.fullName, r.studentId || '', r.institution, r.yearLevel || '',
           r.email, r.phone, r.status, r.attendMode, channel || '', exp,
           r.questions || '', r.nameEnglish, r.consentMedia ? 'ยินยอม' : '', r.consentData ? 'ยินยอม' : '',
           new Date(r.createdAt).toLocaleString('th-TH'),
+          attLabel(r.attendance), r.absenceReason || '', srcLabel,
+          r.rsvpAt ? new Date(r.rsvpAt).toLocaleString('th-TH') : '',
+          r.emailSentAt ? new Date(r.emailSentAt).toLocaleString('th-TH') : '',
         ];
       });
       const csv = [header, ...rows].map(row => row.map(csvEscape).join(',')).join('\r\n');
@@ -308,6 +467,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && (p === '/admin' || p === '/admin.html')) {
       return serveFile(res, path.join(PUBLIC_DIR, 'admin.html'), 'text/html; charset=utf-8');
+    }
+    if (req.method === 'GET' && (p === '/rsvp' || p === '/rsvp.html')) {
+      return serveFile(res, path.join(PUBLIC_DIR, 'rsvp.html'), 'text/html; charset=utf-8');
     }
 
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });

@@ -46,6 +46,18 @@
     .no { color: #cbd5e1; }
     .empty { text-align: center; padding: 50px; color: var(--muted); }
     .muted { color: var(--muted); }
+
+    .summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .stat { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 9px 16px; font-size: 14px; }
+    .stat b { font-size: 18px; margin-left: 4px; }
+    .stat.s-yes b { color: #16a34a; } .stat.s-no b { color: #dc2626; } .stat.s-pending b { color: #d97706; }
+    select.att { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; }
+    select.att.a-yes { border-color: #16a34a; color: #16a34a; }
+    select.att.a-no { border-color: #dc2626; color: #dc2626; }
+    input.reason { margin-top: 6px; width: 170px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; font-family: inherit; }
+    .src { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); white-space: normal; }
+    .btn.mini { padding: 6px 12px; font-size: 12.5px; }
+    .sent { color: #16a34a; font-size: 11.5px; display: block; margin-top: 5px; white-space: normal; max-width: 150px; }
   </style>
 </head>
 <body>
@@ -71,6 +83,8 @@
       <button class="btn ghost" id="logoutBtn">ออกจากระบบ</button>
     </div>
 
+    <div class="summary" id="summary"></div>
+
     <div class="table-card">
       <div class="scroll">
         <table id="table">
@@ -80,7 +94,7 @@
               <th>ชั้นปี</th><th>อีเมล</th><th>เบอร์โทร</th><th>สถานะ</th><th>รูปแบบ</th>
               <th>ทราบข่าวจาก</th><th>สิ่งที่คาดหวัง</th><th>คำถามถึงวิทยากร</th>
               <th>ชื่อ (อังกฤษ)</th><th>ยินยอมถ่ายภาพ</th><th>ยินยอมเก็บข้อมูล</th>
-              <th>เวลาลงทะเบียน</th><th></th>
+              <th>เวลาลงทะเบียน</th><th>การเข้าร่วม</th><th>อีเมล</th><th></th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
@@ -156,12 +170,90 @@
           <td>${r.consentMedia ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'}</td>
           <td>${r.consentData ? '<span class="yes">✓</span>' : '<span class="no">✗</span>'}</td>
           <td class="muted">${new Date(r.createdAt).toLocaleString('th-TH')}</td>
+          <td>
+            <select class="att ${r.attendance === 'yes' ? 'a-yes' : r.attendance === 'no' ? 'a-no' : ''}" data-att="${esc(r.id)}">
+              <option value=""${r.attendance === '' ? ' selected' : ''}>— ยังไม่ระบุ —</option>
+              <option value="yes"${r.attendance === 'yes' ? ' selected' : ''}>มา</option>
+              <option value="no"${r.attendance === 'no' ? ' selected' : ''}>ไม่มา</option>
+            </select>
+            <input class="reason" data-reason="${esc(r.id)}" placeholder="เหตุผลที่ไม่มา"
+              value="${esc(r.absenceReason)}" style="display:${r.attendance === 'no' ? 'block' : 'none'}" />
+            ${r.attendanceSource ? `<span class="src">โดย${r.attendanceSource === 'self' ? 'ผู้ลงทะเบียน' : 'แอดมิน'}${r.rsvpAt ? ' · ' + new Date(r.rsvpAt).toLocaleString('th-TH') : ''}</span>` : ''}
+          </td>
+          <td>
+            <button class="btn ghost mini" data-email="${esc(r.id)}">ส่งอีเมล</button>
+            ${r.emailSentAt ? `<span class="sent">✓ ส่งแล้ว<br>${new Date(r.emailSentAt).toLocaleString('th-TH')}</span>` : ''}
+          </td>
           <td><button class="btn danger" data-id="${esc(r.id)}">ลบ</button></td>
         </tr>`).join('');
+
+      renderSummary();
 
       document.querySelectorAll('button[data-id]').forEach(b => {
         b.onclick = () => remove(b.getAttribute('data-id'));
       });
+      // เปลี่ยนสถานะมา/ไม่มา
+      document.querySelectorAll('select[data-att]').forEach(sel => {
+        sel.onchange = () => {
+          const id = sel.getAttribute('data-att');
+          const reasonEl = document.querySelector(`input[data-reason="${CSS.escape(id)}"]`);
+          if (reasonEl) reasonEl.style.display = sel.value === 'no' ? 'block' : 'none';
+          setAttendance(id, sel.value, reasonEl ? reasonEl.value.trim() : '');
+        };
+      });
+      // บันทึกเหตุผลเมื่อออกจากช่อง
+      document.querySelectorAll('input[data-reason]').forEach(inp => {
+        inp.onchange = () => {
+          const id = inp.getAttribute('data-reason');
+          const sel = document.querySelector(`select[data-att="${CSS.escape(id)}"]`);
+          setAttendance(id, sel ? sel.value : 'no', inp.value.trim());
+        };
+      });
+      // ส่งอีเมล
+      document.querySelectorAll('button[data-email]').forEach(b => {
+        b.onclick = () => sendEmail(b.getAttribute('data-email'), b);
+      });
+    }
+
+    function renderSummary() {
+      const yes = rows.filter(r => r.attendance === 'yes').length;
+      const no = rows.filter(r => r.attendance === 'no').length;
+      const pending = rows.length - yes - no;
+      $('summary').innerHTML =
+        `<div class="stat s-yes">มา <b>${yes}</b></div>` +
+        `<div class="stat s-no">ไม่มา <b>${no}</b></div>` +
+        `<div class="stat s-pending">ยังไม่ระบุ <b>${pending}</b></div>`;
+    }
+
+    async function setAttendance(id, attendance, absenceReason) {
+      const res = await fetch('/api/attendance/' + encodeURIComponent(id), {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-key': KEY },
+        body: JSON.stringify({ attendance, absenceReason }),
+      });
+      if (res.ok) {
+        const r = rows.find(x => x.id === id);
+        if (r) { r.attendance = attendance; r.absenceReason = absenceReason; r.attendanceSource = 'admin'; r.rsvpAt = new Date().toISOString(); }
+        render();
+      } else { alert('บันทึกสถานะไม่สำเร็จ'); }
+    }
+
+    async function sendEmail(id, btn) {
+      btn.disabled = true; const old = btn.textContent; btn.textContent = 'กำลังส่ง...';
+      try {
+        const res = await fetch('/api/send-email/' + encodeURIComponent(id), {
+          method: 'POST', headers: { 'x-admin-key': KEY },
+        });
+        const out = await res.json();
+        if (out.sent) { alert('ส่งอีเมลเรียบร้อยแล้ว'); load(); }
+        else {
+          // ยังไม่ได้ตั้งค่า provider → ให้คัดลอกลิงก์ RSVP ไปส่งเอง
+          const msg = (out.error || 'ส่งอีเมลไม่สำเร็จ') +
+            (out.rsvpLink ? '\n\nคัดลอกลิงก์ยืนยันนี้ไปส่งให้ผู้ลงทะเบียนเองได้:\n' + out.rsvpLink : '');
+          if (out.rsvpLink && navigator.clipboard) { navigator.clipboard.writeText(out.rsvpLink).catch(() => {}); }
+          prompt(msg + '\n\n(ลิงก์ถูกคัดลอกให้แล้ว หรือคัดลอกจากช่องนี้)', out.rsvpLink || '');
+        }
+      } catch { alert('เชื่อมต่อไม่ได้'); }
+      btn.disabled = false; btn.textContent = old;
     }
 
     async function remove(id) {
