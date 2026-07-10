@@ -93,6 +93,18 @@
     .choices.row .opt { flex: 1 1 140px; }
     .other-input { margin-top: 8px; }
     .consent .opt { border-style: dashed; }
+    /* ช่องติ๊กยินยอมเป็นวงกลม */
+    .consent .opt input[type=checkbox] {
+      appearance: none; -webkit-appearance: none;
+      width: 22px; height: 22px; flex: 0 0 auto; margin: 0; cursor: pointer;
+      border: 2px solid var(--border); border-radius: 50%; position: relative;
+      background: #fff; transition: .15s;
+    }
+    .consent .opt input[type=checkbox]:checked { background: var(--brand); border-color: var(--brand); }
+    .consent .opt input[type=checkbox]:checked::after {
+      content: ''; position: absolute; left: 7px; top: 3px;
+      width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+    }
     .err { color: var(--error); font-size: 13px; margin-top: 6px; display: none; }
     .field.invalid .err { display: block; }
     .field.invalid input, .field.invalid textarea, .field.invalid select { border-color: var(--error); }
@@ -224,14 +236,14 @@
         <div class="field" data-req>
           <label class="opt">
             <input type="checkbox" id="consentMedia" />
-            <span>13. ยินยอมให้บันทึกภาพ / วิดีโอภายในงาน <span class="req">*</span></span>
+            <span>ยินยอมให้บันทึกภาพ / วิดีโอภายในงาน <span class="req">*</span></span>
           </label>
           <div class="err">กรุณายินยอมข้อนี้เพื่อดำเนินการต่อ</div>
         </div>
         <div class="field" data-req>
           <label class="opt">
             <input type="checkbox" id="consentData" />
-            <span>14. ยินยอมให้เก็บข้อมูลเพื่อใช้ในการจัดกิจกรรม <span class="req">*</span></span>
+            <span>ยินยอมให้เก็บข้อมูลเพื่อใช้ในการจัดกิจกรรม <span class="req">*</span></span>
           </label>
           <div class="err">กรุณายินยอมข้อนี้เพื่อดำเนินการต่อ</div>
         </div>
