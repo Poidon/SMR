@@ -59,7 +59,7 @@ function createPgStore(url) {
     attendMode: r.attend_mode,
     heardFrom: toArray(r.heard_from),
     heardFromOther: r.heard_from_other || '',
-    expectations: Array.isArray(r.expectations) ? r.expectations : [],
+    expectations: Array.isArray(r.expectations) ? r.expectations.join(', ') : (r.expectations == null ? '' : String(r.expectations)),
     expectationsOther: r.expectations_other || '',
     questions: r.questions || '',
     nameEnglish: r.name_english,
@@ -207,9 +207,8 @@ const server = http.createServer(async (req, res) => {
         : (data.heardFrom ? [clip(data.heardFrom, 50)] : []);
       heardFrom = heardFrom.filter(x => CHANNELS.includes(x));
       const heardFromOther = clip(data.heardFromOther, 300);
-      let expectations = Array.isArray(data.expectations) ? data.expectations.map(x => clip(x, 100)) : [];
-      expectations = expectations.filter(x => EXPECTATIONS.includes(x));
-      const expectationsOther = clip(data.expectationsOther, 300);
+      const expectations = clip(data.expectations);   // ข้อ 10 เป็นข้อความอิสระ
+      const expectationsOther = '';
       const questions = clip(data.questions);
       const nameEnglish = clip(data.nameEnglish, 200);
       const consentMedia = data.consentMedia === true;
@@ -286,13 +285,10 @@ const server = http.createServer(async (req, res) => {
         const ch = toArray(r.heardFrom);
         if (ch.includes('อื่น ๆ') && r.heardFromOther) ch[ch.indexOf('อื่น ๆ')] = `อื่น ๆ: ${r.heardFromOther}`;
         const channel = ch.join(', ');
-        const exp = [...(r.expectations || [])];
-        if (r.expectations && r.expectations.includes('อื่น ๆ') && r.expectationsOther) {
-          exp[exp.indexOf('อื่น ๆ')] = `อื่น ๆ: ${r.expectationsOther}`;
-        }
+        const exp = Array.isArray(r.expectations) ? r.expectations.join(', ') : (r.expectations || '');
         return [
           i + 1, r.fullName, r.studentId || '', r.institution, r.yearLevel || '',
-          r.email, r.phone, r.status, r.attendMode, channel || '', exp.join(', '),
+          r.email, r.phone, r.status, r.attendMode, channel || '', exp,
           r.questions || '', r.nameEnglish, r.consentMedia ? 'ยินยอม' : '', r.consentData ? 'ยินยอม' : '',
           new Date(r.createdAt).toLocaleString('th-TH'),
         ];

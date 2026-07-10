@@ -208,9 +208,8 @@
         </div>
 
         <div class="field">
-          <label class="q">10. สิ่งที่คาดหวังจากการเข้าร่วมสัมมนา <span class="hint">(เลือกได้มากกว่า 1)</span></label>
-          <div class="choices" id="expectChoices"></div>
-          <input type="text" class="other-input" id="expectationsOther" placeholder="โปรดระบุสิ่งที่คาดหวังอื่น ๆ" style="display:none" />
+          <label class="q" for="expectations">10. สิ่งที่คาดหวังจากการเข้าร่วมสัมมนา</label>
+          <textarea id="expectations" name="expectations" placeholder="พิมพ์สิ่งที่คุณคาดหวังจากการเข้าร่วมงานนี้ (ถ้ามี)"></textarea>
         </div>
 
         <div class="field">
@@ -276,7 +275,6 @@
     buildRadios(document.getElementById('statusChoices'), 'status', STATUSES);
     buildRadios(document.getElementById('modeChoices'), 'attendMode', MODES);
     buildChecks(document.getElementById('channelChoices'), 'heardFrom', CHANNELS);
-    buildChecks(document.getElementById('expectChoices'), 'expectations', EXPECTATIONS);
 
     // แสดง/ซ่อนช่อง "อื่น ๆ"
     const heardOther = document.getElementById('heardFromOther');
@@ -284,13 +282,6 @@
       c.addEventListener('change', () => {
         const other = document.querySelector('input[name=heardFrom][value="อื่น ๆ"]');
         heardOther.style.display = other && other.checked ? 'block' : 'none';
-      });
-    });
-    const expectOther = document.getElementById('expectationsOther');
-    document.querySelectorAll('input[name=expectations]').forEach(c => {
-      c.addEventListener('change', () => {
-        const other = document.querySelector('input[name=expectations][value="อื่น ๆ"]');
-        expectOther.style.display = other && other.checked ? 'block' : 'none';
       });
     });
 
@@ -371,8 +362,7 @@
         attendMode: radioValue('attendMode'),
         heardFrom: [...document.querySelectorAll('input[name=heardFrom]:checked')].map(c => c.value),
         heardFromOther: heardOther.value.trim(),
-        expectations: [...document.querySelectorAll('input[name=expectations]:checked')].map(c => c.value),
-        expectationsOther: expectOther.value.trim(),
+        expectations: $('expectations').value.trim(),
         questions: $('questions').value.trim(),
         nameEnglish: $('nameEnglish').value.trim(),
         consentMedia: $('consentMedia').checked,

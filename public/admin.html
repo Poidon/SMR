@@ -125,11 +125,7 @@
       return ch.join(', ');
     }
     function expectText(r) {
-      const exp = [...(r.expectations || [])];
-      if (r.expectations && r.expectations.includes('อื่น ๆ') && r.expectationsOther) {
-        exp[exp.indexOf('อื่น ๆ')] = 'อื่น ๆ: ' + r.expectationsOther;
-      }
-      return exp.join(', ');
+      return Array.isArray(r.expectations) ? r.expectations.join(', ') : (r.expectations || '');
     }
 
     function render() {
