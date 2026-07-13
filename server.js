@@ -83,6 +83,15 @@ async function sendEmail(to, subject, html, text) {
   // TODO: เพิ่ม SendGrid / SMTP ได้ที่นี่ในอนาคต
   return { sent: false, reason: 'ยังไม่ได้ตั้งค่าการส่งอีเมล (ยังไม่มี provider)' };
 }
+// ส่งอีเมลยืนยันแบบอัตโนมัติ (เรียกแบบไม่บล็อก; ถ้ายังไม่ตั้ง provider จะไม่ส่ง)
+async function autoSendRsvp(rec, req) {
+  if (process.env.AUTO_EMAIL === 'false') return;        // ปิดการส่งอัตโนมัติได้ด้วย env
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const baseUrl = process.env.PUBLIC_URL || `${proto}://${req.headers.host}`;
+  const { subject, html, text } = buildRsvpEmail(rec, baseUrl);
+  const result = await sendEmail(rec.email, subject, html, text);
+  if (result.sent) { try { await store.markEmailSent(rec.id); } catch {} }
+}
 
 // ---------- ชั้นเก็บข้อมูล: PostgreSQL ----------
 function createPgStore(url) {
@@ -394,6 +403,8 @@ const server = http.createServer(async (req, res) => {
         }
         throw e;
       }
+      // ส่งอีเมลยืนยันอัตโนมัติ (ไม่บล็อกการตอบกลับ; ไม่ให้ error ของเมลกระทบการลงทะเบียน)
+      autoSendRsvp(record, req).catch(e => console.error('ส่งอีเมลอัตโนมัติไม่สำเร็จ:', e && e.message));
       const total = (await store.all()).length;
       return sendJson(res, 201, { ok: true, id: record.id, total });
     }
