@@ -76,7 +76,12 @@ async function sendEmail(to, subject, html, text) {
 // ---------- ชั้นเก็บข้อมูล: PostgreSQL ----------
 function createPgStore(url) {
   const { Pool } = require('pg');
-  const useSSL = /sslmode=require/.test(url) || process.env.PGSSL === 'true';
+  // เปิด SSL อัตโนมัติเมื่อต่อฐานข้อมูลที่ไม่ใช่ในเครื่อง (เช่น Render/Railway ที่บังคับ SSL)
+  // บังคับเปิด/ปิดเองได้ด้วย env PGSSL=true/false
+  const isLocal = /@(localhost|127\.0\.0\.1)/.test(url);
+  const useSSL = process.env.PGSSL === 'true' ? true
+    : process.env.PGSSL === 'false' ? false
+    : (/sslmode=require/.test(url) || !isLocal);
   const pool = new Pool({
     connectionString: url,
     ssl: useSSL ? { rejectUnauthorized: false } : false,
