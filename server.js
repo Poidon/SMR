@@ -475,6 +475,21 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: false, sent: false, error: result.reason, rsvpLink });
     }
 
+    // --- API: สร้าง QR code เป็นรูป PNG ---
+    if (req.method === 'GET' && p === '/api/qr') {
+      const text = String(url.searchParams.get('text') || '');
+      let size = parseInt(url.searchParams.get('size') || '320', 10);
+      size = Math.min(1000, Math.max(120, Number.isFinite(size) ? size : 320));
+      if (!text || text.length > 1000) { res.writeHead(400); res.end('bad text'); return; }
+      let QR; try { QR = require('qrcode'); } catch { res.writeHead(501); res.end('qr module not installed'); return; }
+      try {
+        const buf = await QR.toBuffer(text, { width: size, margin: 1, errorCorrectionLevel: 'M' });
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' });
+        res.end(buf);
+      } catch { res.writeHead(500); res.end('qr error'); }
+      return;
+    }
+
     // --- API: ส่งแบบประเมินความพึงพอใจ (สาธารณะ ไม่ระบุตัวตน) ---
     if (req.method === 'POST' && p === '/api/feedback') {
       const body = await readBody(req);
@@ -564,6 +579,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && (p === '/admin/feedback' || p === '/admin-feedback' || p === '/admin-feedback.html')) {
       return serveFile(res, path.join(PUBLIC_DIR, 'admin-feedback.html'), 'text/html; charset=utf-8');
+    }
+    if (req.method === 'GET' && (p === '/admin/qr' || p === '/admin-qr' || p === '/admin-qr.html')) {
+      return serveFile(res, path.join(PUBLIC_DIR, 'admin-qr.html'), 'text/html; charset=utf-8');
     }
 
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });

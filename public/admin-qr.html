@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Code — งานสัมมนา</title>
+  <style>
+    :root { --gold: #e6c15a; --bg: #08080a; --text: #ededf1; --muted: #99a1ad; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI","Sarabun","Prompt",system-ui,sans-serif; color: var(--text); line-height: 1.6;
+      background: radial-gradient(1000px 500px at 50% -8%, rgba(230,193,90,.13), transparent 60%), #08080a; min-height: 100vh;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 28px 16px 64px; }
+    h1 { text-align: center; font-size: 24px; margin: 0 0 4px; }
+    h1 .gold { background: linear-gradient(180deg,#f6dc83,#c6981f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { text-align: center; color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .qr-card { background: #fff; color: #1a1a1a; border-radius: 18px; padding: 24px; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+    .qr-card h2 { margin: 0 0 4px; font-size: 18px; color: #4338ca; }
+    .qr-card .desc { color: #64748b; font-size: 13px; margin: 0 0 16px; }
+    .qr-card img { width: 100%; max-width: 300px; height: auto; border-radius: 8px; display: block; margin: 0 auto; }
+    .qr-card .url { font-size: 12px; color: #64748b; word-break: break-all; margin: 14px 0; }
+    .qr-card a.dl { display: inline-block; background: #4f46e5; color: #fff; text-decoration: none; padding: 9px 18px; border-radius: 9px; font-size: 14px; font-weight: 600; }
+    .qr-card a.dl:hover { background: #4338ca; }
+    .toolbar { text-align: center; margin-top: 26px; }
+    .btn { background: rgba(255,255,255,.08); color: var(--text); border: 1px solid rgba(255,255,255,.18); padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 0 5px; }
+    .btn:hover { background: rgba(255,255,255,.14); }
+    @media print {
+      body { background: #fff; }
+      .toolbar, .sub { display: none; }
+      .qr-card { box-shadow: none; border: 1px solid #ddd; }
+      h1 .gold { color: #c6981f; -webkit-text-fill-color: #c6981f; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1><span class="gold">QR Code</span> สำหรับงานสัมมนา</h1>
+    <p class="sub">ให้ผู้เข้าร่วมสแกนเพื่อเปิดหน้าที่ต้องการ · กด "พิมพ์" เพื่อทำป้าย หรือ "ดาวน์โหลด" เพื่อเอาไปขึ้นสไลด์</p>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="toolbar">
+      <button class="btn" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+      <button class="btn" onclick="location.href='/admin'">← กลับหน้าหลังบ้าน</button>
+    </div>
+  </div>
+
+  <script>
+    const origin = location.origin;
+    const CARDS = [
+      { title: 'แบบประเมินความพึงพอใจ', desc: 'สแกนเพื่อประเมินหลังจบงาน', path: '/survey', file: 'qr-survey.png' },
+      { title: 'ลงทะเบียนเข้าร่วมงาน', desc: 'สแกนเพื่อลงทะเบียน', path: '/', file: 'qr-register.png' },
+    ];
+    document.getElementById('grid').innerHTML = CARDS.map(c => {
+      const target = origin + c.path;
+      const qr = '/api/qr?size=600&text=' + encodeURIComponent(target);
+      return `<div class="qr-card">
+        <h2>${c.title}</h2>
+        <div class="desc">${c.desc}</div>
+        <img src="${qr}" alt="QR ${c.title}" />
+        <div class="url">${target}</div>
+        <a class="dl" href="${qr}" download="${c.file}">ดาวน์โหลดรูป</a>
+      </div>`;
+    }).join('');
+  </script>
+</body>
+</html>
