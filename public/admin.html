@@ -79,6 +79,7 @@
       <input class="search" id="search" placeholder="ค้นหา ชื่อ / อีเมล / สถาบัน..." />
       <div class="spacer"></div>
       <button class="btn ghost" id="refreshBtn">รีเฟรช</button>
+      <button class="btn ghost" id="feedbackBtn">ผลแบบประเมิน</button>
       <button class="btn" id="exportBtn">ดาวน์โหลด CSV</button>
       <button class="btn ghost" id="logoutBtn">ออกจากระบบ</button>
     </div>
@@ -269,6 +270,7 @@
     $('loginBtn').onclick = login;
     $('key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
     $('refreshBtn').onclick = load;
+    $('feedbackBtn').onclick = () => { location.href = '/admin/feedback'; };
     $('exportBtn').onclick = exportCsv;
     $('logoutBtn').onclick = logout;
     $('search').addEventListener('input', render);

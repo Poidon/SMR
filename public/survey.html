@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>แบบประเมินความพึงพอใจ — งานสัมมนา</title>
+  <style>
+    :root {
+      --gold: #e6c15a; --gold-deep: #c6981f; --bg: #08080a;
+      --text: #ededf1; --muted: #99a1ad; --border: rgba(255,255,255,.17); --error: #f87171; --ok: #34d399;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI","Sarabun","Prompt",system-ui,sans-serif; color: var(--text); line-height: 1.6;
+      background:
+        radial-gradient(1000px 500px at 50% -8%, rgba(230,193,90,.13), transparent 60%),
+        radial-gradient(800px 460px at 90% 108%, rgba(230,193,90,.10), transparent 55%),
+        #08080a;
+      background-attachment: fixed; min-height: 100vh;
+    }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 64px; }
+    .hero {
+      background: radial-gradient(circle at 82% 118%, rgba(230,193,90,.4), transparent 46%), #0b0b0d;
+      border: 1px solid rgba(230,193,90,.18); color: #fff; border-radius: 20px; padding: 34px 26px; text-align: center; margin-bottom: 20px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.5);
+    }
+    .hero h1 { margin: 0 0 6px; font-size: clamp(20px, 5.5vw, 28px); font-weight: 900; }
+    .hero .gold { background: linear-gradient(180deg,#f6dc83,#c6981f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero p { margin: 0; color: #cbd5e1; font-size: 14px; }
+    .card { background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.10); border-radius: 18px; padding: 24px 22px; margin-bottom: 18px; box-shadow: 0 10px 34px rgba(0,0,0,.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .legend { color: var(--muted); font-size: 13px; margin: 0 0 18px; text-align: center; }
+    .q { margin-bottom: 22px; }
+    .q:last-child { margin-bottom: 0; }
+    .q .label { font-weight: 600; margin-bottom: 10px; }
+    .q .label .num { color: var(--gold); margin-right: 6px; }
+    .scale { display: flex; gap: 8px; }
+    .scale label {
+      flex: 1; text-align: center; cursor: pointer; border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 4px; font-weight: 700; font-size: 16px; transition: .15s; background: rgba(255,255,255,.02); position: relative;
+    }
+    .scale label:hover { border-color: var(--gold); }
+    .scale input { position: absolute; opacity: 0; pointer-events: none; }
+    .scale label.sel { border-color: var(--gold); background: linear-gradient(180deg,#f6dc83,#d9a92e); color: #1a1400; }
+    .q.invalid .scale label { border-color: var(--error); }
+    label.qt { display: block; font-weight: 600; margin-bottom: 8px; }
+    textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 11px; font-size: 15px; font-family: inherit; min-height: 80px; resize: vertical; background: rgba(255,255,255,.04); color: var(--text); }
+    textarea::placeholder { color: #6b7280; }
+    textarea:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(230,193,90,.18); background: rgba(255,255,255,.06); }
+    button.submit { width: 100%; padding: 16px; font-size: 17px; font-weight: 800; color: #1a1400; background: linear-gradient(180deg,#f6dc83,#d9a92e); border: none; border-radius: 13px; cursor: pointer; box-shadow: 0 10px 26px rgba(230,193,90,.28); }
+    button.submit:hover { filter: brightness(1.06); }
+    button.submit:disabled { opacity: .55; cursor: not-allowed; filter: none; }
+    #msg { margin-top: 14px; padding: 12px 14px; border-radius: 11px; font-size: 14px; display: none; }
+    #msg.show { display: block; }
+    #msg.error { background: rgba(248,113,113,.12); color: #fca5a5; border: 1px solid rgba(248,113,113,.35); }
+    .done { text-align: center; padding: 40px 20px; }
+    .done .check { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(180deg,#f6dc83,#d9a92e); color: #1a1400; font-size: 40px; line-height: 72px; margin: 0 auto 16px; box-shadow: 0 10px 26px rgba(230,193,90,.35); }
+    .done h2 { color: var(--gold); font-size: 22px; margin: 0 0 6px; }
+    .done p { color: var(--muted); }
+    .note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>แบบประเมินความพึงพอใจ</h1>
+      <p><span class="gold">THINK WITH DATA, DECIDE WITH AI</span></p>
+    </div>
+
+    <form id="form">
+      <div class="card">
+        <p class="legend">ให้คะแนน 1–5 &nbsp;·&nbsp; 1 = น้อยที่สุด &nbsp;→&nbsp; 5 = มากที่สุด</p>
+        <div id="questions"></div>
+      </div>
+
+      <div class="card">
+        <div class="q" style="margin-bottom:18px">
+          <label class="qt" for="suggestions">ข้อเสนอแนะเพิ่มเติม</label>
+          <textarea id="suggestions" placeholder="สิ่งที่อยากให้ปรับปรุง หรือชื่นชม (ถ้ามี)"></textarea>
+        </div>
+        <div class="q">
+          <label class="qt" for="topics">หัวข้อที่อยากให้จัดในครั้งต่อไป</label>
+          <textarea id="topics" placeholder="เช่น หัวข้อ / วิทยากรที่สนใจ (ถ้ามี)"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="submit" id="submitBtn">ส่งแบบประเมิน</button>
+      <div id="msg"></div>
+    </form>
+
+    <div id="done" style="display:none"></div>
+    <p class="note">แบบประเมินนี้ไม่มีการเก็บชื่อผู้ตอบ (ไม่ระบุตัวตน)</p>
+  </div>
+
+  <script>
+    const ITEMS = [
+      { key: 'content', label: 'เนื้อหาของการสัมมนา' },
+      { key: 'speaker', label: 'วิทยากร / ผู้บรรยาย' },
+      { key: 'organization', label: 'การจัดงานและสถานที่' },
+      { key: 'benefit', label: 'ความรู้ที่ได้รับและการนำไปใช้ประโยชน์' },
+      { key: 'overall', label: 'ความพึงพอใจโดยรวม' },
+    ];
+    const $ = id => document.getElementById(id);
+
+    $('questions').innerHTML = ITEMS.map((it, i) => `
+      <div class="q" data-q="${it.key}">
+        <div class="label"><span class="num">${i + 1}.</span>${it.label}</div>
+        <div class="scale">
+          ${[1,2,3,4,5].map(n => `<label><input type="radio" name="${it.key}" value="${n}" /><span>${n}</span></label>`).join('')}
+        </div>
+      </div>`).join('');
+
+    // ไฮไลต์ตัวเลือกที่เลือก + ล้าง invalid
+    document.querySelectorAll('.scale').forEach(scale => {
+      scale.addEventListener('change', () => {
+        scale.querySelectorAll('label').forEach(l => l.classList.toggle('sel', l.querySelector('input').checked));
+        scale.closest('.q').classList.remove('invalid');
+      });
+    });
+
+    const form = $('form'), msg = $('msg'), btn = $('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.className = '';
+      const data = {};
+      let firstBad = null;
+      for (const it of ITEMS) {
+        const sel = document.querySelector(`input[name="${it.key}"]:checked`);
+        const q = document.querySelector(`.q[data-q="${it.key}"]`);
+        if (!sel) { q.classList.add('invalid'); if (!firstBad) firstBad = q; }
+        else data[it.key] = parseInt(sel.value, 10);
+      }
+      if (firstBad) {
+        firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        msg.textContent = 'กรุณาให้คะแนนให้ครบทุกข้อ'; msg.className = 'show error';
+        return;
+      }
+      data.suggestions = $('suggestions').value.trim();
+      data.topics = $('topics').value.trim();
+
+      btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+      try {
+        const res = await fetch('/api/feedback', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+        });
+        const out = await res.json();
+        if (res.ok && out.ok) {
+          $('done').innerHTML =
+            '<div class="card done"><div class="check">✓</div>' +
+            '<h2>ขอบคุณสำหรับการประเมิน!</h2>' +
+            '<p>ความคิดเห็นของท่านมีค่าอย่างยิ่ง<br>และจะถูกนำไปพัฒนางานในครั้งต่อไป</p></div>';
+          form.style.display = 'none';
+          $('done').style.display = 'block';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          msg.textContent = out.error || 'เกิดข้อผิดพลาด กรุณาลองใหม่'; msg.className = 'show error';
+          btn.disabled = false; btn.textContent = 'ส่งแบบประเมิน';
+        }
+      } catch {
+        msg.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่'; msg.className = 'show error';
+        btn.disabled = false; btn.textContent = 'ส่งแบบประเมิน';
+      }
+    });
+  </script>
+</body>
+</html>

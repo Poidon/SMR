@@ -18,6 +18,17 @@ const DATABASE_URL = process.env.DATABASE_URL || '';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'registrations.json');
+const FEEDBACK_FILE = path.join(DATA_DIR, 'feedback.json');
+
+// หัวข้อของแบบประเมินความพึงพอใจ (ให้คะแนน 1-5)
+const FEEDBACK_ITEMS = [
+  { key: 'content', label: 'เนื้อหาของการสัมมนา' },
+  { key: 'speaker', label: 'วิทยากร / ผู้บรรยาย' },
+  { key: 'organization', label: 'การจัดงานและสถานที่' },
+  { key: 'benefit', label: 'ความรู้ที่ได้รับและการนำไปใช้ประโยชน์' },
+  { key: 'overall', label: 'ความพึงพอใจโดยรวม' },
+];
+const validRating = n => Number.isInteger(n) && n >= 1 && n <= 5;
 
 // ---------- ตัวเลือกของแต่ละหัวข้อ (ใช้ตรวจสอบให้ตรงกับฟอร์ม) ----------
 const STATUSES = ['นักศึกษา', 'อาจารย์', 'บุคคลภายนอก'];
@@ -158,6 +169,14 @@ function createPgStore(url) {
         ON seminar_registrations (phone_norm)`);
       await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uniq_sem_token
         ON seminar_registrations (rsvp_token)`);
+      // ตารางแบบประเมินความพึงพอใจ (ไม่ระบุตัวตน)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS seminar_feedback (
+          id           TEXT PRIMARY KEY,
+          content      INT, speaker INT, organization INT, benefit INT, overall INT,
+          suggestions  TEXT, topics TEXT,
+          created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+        )`);
     },
     async all() {
       const { rows } = await pool.query(
@@ -217,6 +236,21 @@ function createPgStore(url) {
       const { rows } = await pool.query(`SELECT COUNT(*)::int AS c FROM seminar_registrations`);
       return rows[0].c;
     },
+    // ---- แบบประเมินความพึงพอใจ ----
+    async insertFeedback(rec) {
+      await pool.query(
+        `INSERT INTO seminar_feedback (id, content, speaker, organization, benefit, overall, suggestions, topics, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [rec.id, rec.content, rec.speaker, rec.organization, rec.benefit, rec.overall, rec.suggestions, rec.topics, rec.createdAt]);
+    },
+    async allFeedback() {
+      const { rows } = await pool.query(`SELECT * FROM seminar_feedback ORDER BY created_at ASC`);
+      return rows.map(r => ({
+        id: r.id, content: r.content, speaker: r.speaker, organization: r.organization,
+        benefit: r.benefit, overall: r.overall, suggestions: r.suggestions || '', topics: r.topics || '',
+        createdAt: (r.created_at instanceof Date) ? r.created_at.toISOString() : r.created_at,
+      }));
+    },
   };
 }
 
@@ -251,6 +285,14 @@ function createFileStore() {
       const l = read(); const r = l.find(x => x.id === id); if (r) { r.emailSentAt = new Date().toISOString(); write(l); }
     },
     async remove(id) { const l = read().filter(r => r.id !== id); write(l); return l.length; },
+    // ---- แบบประเมินความพึงพอใจ ----
+    async insertFeedback(rec) {
+      let l = []; try { l = JSON.parse(fs.readFileSync(FEEDBACK_FILE, 'utf8')) || []; } catch {}
+      l.push(rec); fs.writeFileSync(FEEDBACK_FILE, JSON.stringify(l, null, 2), 'utf8');
+    },
+    async allFeedback() {
+      try { return JSON.parse(fs.readFileSync(FEEDBACK_FILE, 'utf8')) || []; } catch { return []; }
+    },
   };
 }
 
@@ -433,6 +475,47 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: false, sent: false, error: result.reason, rsvpLink });
     }
 
+    // --- API: ส่งแบบประเมินความพึงพอใจ (สาธารณะ ไม่ระบุตัวตน) ---
+    if (req.method === 'POST' && p === '/api/feedback') {
+      const body = await readBody(req);
+      let d; try { d = JSON.parse(body); } catch { return sendJson(res, 400, { ok: false, error: 'ข้อมูลไม่ถูกต้อง' }); }
+      const rec = { id: Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36) };
+      for (const it of FEEDBACK_ITEMS) {
+        const n = parseInt(d[it.key], 10);
+        if (!validRating(n)) return sendJson(res, 400, { ok: false, error: `กรุณาให้คะแนน "${it.label}"` });
+        rec[it.key] = n;
+      }
+      rec.suggestions = clip(d.suggestions, 1000);
+      rec.topics = clip(d.topics, 500);
+      rec.createdAt = new Date().toISOString();
+      await store.insertFeedback(rec);
+      return sendJson(res, 201, { ok: true });
+    }
+
+    // --- API: ดึงผลแบบประเมิน (ต้องมีรหัสผ่าน) ---
+    if (req.method === 'GET' && p === '/api/feedback') {
+      if (!isAuthed(req, url)) return sendJson(res, 401, { ok: false, error: 'รหัสผ่านไม่ถูกต้อง' });
+      return sendJson(res, 200, { ok: true, data: await store.allFeedback() });
+    }
+
+    // --- ดาวน์โหลด CSV แบบประเมิน (ต้องมีรหัสผ่าน) ---
+    if (req.method === 'GET' && p === '/api/feedback.csv') {
+      if (!isAuthed(req, url)) { res.writeHead(401); res.end('unauthorized'); return; }
+      const list = await store.allFeedback();
+      const header = ['ลำดับ', ...FEEDBACK_ITEMS.map(it => it.label), 'ข้อเสนอแนะ', 'หัวข้อครั้งต่อไป', 'เวลา'];
+      const rows = list.map((r, i) => [
+        i + 1, ...FEEDBACK_ITEMS.map(it => r[it.key]), r.suggestions || '', r.topics || '',
+        new Date(r.createdAt).toLocaleString('th-TH'),
+      ]);
+      const csv = [header, ...rows].map(row => row.map(csvEscape).join(',')).join('\r\n');
+      res.writeHead(200, {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="seminar-feedback.csv"',
+      });
+      res.end('﻿' + csv);
+      return;
+    }
+
     // --- ดาวน์โหลด CSV (ต้องมีรหัสผ่าน) ---
     if (req.method === 'GET' && p === '/api/export.csv') {
       if (!isAuthed(req, url)) { res.writeHead(401); res.end('unauthorized'); return; }
@@ -475,6 +558,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && (p === '/rsvp' || p === '/rsvp.html')) {
       return serveFile(res, path.join(PUBLIC_DIR, 'rsvp.html'), 'text/html; charset=utf-8');
+    }
+    if (req.method === 'GET' && (p === '/survey' || p === '/survey.html')) {
+      return serveFile(res, path.join(PUBLIC_DIR, 'survey.html'), 'text/html; charset=utf-8');
+    }
+    if (req.method === 'GET' && (p === '/admin/feedback' || p === '/admin-feedback' || p === '/admin-feedback.html')) {
+      return serveFile(res, path.join(PUBLIC_DIR, 'admin-feedback.html'), 'text/html; charset=utf-8');
     }
 
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
