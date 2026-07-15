@@ -40,6 +40,19 @@ npm start          # หรือ node server.js
 | `EMAIL_FROM` | *(ว่าง)* | อีเมลผู้ส่ง — **ถ้าใช้ Brevo ต้องเป็นอีเมลที่ verify เป็น sender ใน Brevo แล้ว** |
 
 > ลำดับการเลือก provider ใน `sendEmail`: Brevo → Gmail → Resend (ตั้งตัวไหนไว้ก็ใช้ตัวนั้น)
+
+### ช่องทาง OTP (เลือกได้: อีเมลหรือ SMS)
+| ตัวแปร | ค่า | คำอธิบาย |
+|--------|-----|----------|
+| `OTP_CHANNEL` | `email` (ค่าเริ่มต้น) / `sms` | เลือกส่ง OTP ทางอีเมลหรือ SMS |
+| `THAIBULKSMS_KEY` | *(ว่าง)* | API Key ของ ThaiBulkSMS (ใช้เมื่อ `OTP_CHANNEL=sms`) |
+| `THAIBULKSMS_SECRET` | *(ว่าง)* | API Secret ของ ThaiBulkSMS |
+| `THAIBULKSMS_SENDER` | *(ว่าง)* | ชื่อผู้ส่ง (Sender) ที่ลงทะเบียนกับ ThaiBulkSMS แล้ว |
+| `THAIBULKSMS_TYPE` | `standard` | ประเภทข้อความ (standard/premium/corporate) |
+
+- `OTP_CHANNEL=sms` + ตั้ง `THAIBULKSMS_*` ครบ → ส่ง OTP ทาง SMS (มีค่าใช้จ่ายต่อข้อความ)
+- `OTP_CHANNEL=email` + ตั้งอีเมล provider (Brevo) → ส่ง OTP ทางอีเมล (ฟรี)
+- ถ้าเปิด `REQUIRE_OTP=true` แต่ยังไม่ตั้ง provider ของช่องทางนั้น → โหมดทดสอบ (โชว์รหัสบนจอ)
 | `AUTO_EMAIL` | *(เปิด)* | อีเมลยืนยันจะถูกส่ง**อัตโนมัติทันทีที่ลงทะเบียน** (เมื่อมี `RESEND_API_KEY`); ตั้ง `false` เพื่อปิดและส่งเองจากหลังบ้านแทน |
 | `TWILIO_ACCOUNT_SID` | *(ว่าง)* | ตั้งครบ 3 ตัว (SID / AUTH_TOKEN / FROM) → ส่ง OTP ทาง SMS จริงผ่าน Twilio |
 | `TWILIO_AUTH_TOKEN` | *(ว่าง)* | Auth token ของ Twilio |
