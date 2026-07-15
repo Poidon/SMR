@@ -87,7 +87,10 @@ async function sendEmail(to, subject, html, text) {
         to, subject, html, text,
       });
       return { sent: true, provider: 'gmail' };
-    } catch (e) { return { sent: false, reason: 'ส่งผ่าน Gmail ไม่สำเร็จ: ' + (e && e.message) }; }
+    } catch (e) {
+      console.error('❌ Gmail ส่งไม่สำเร็จ:', (e && e.message) || e);
+      return { sent: false, reason: 'ส่งผ่าน Gmail ไม่สำเร็จ: ' + (e && e.message) };
+    }
   }
   // 2) Resend (ต้อง verify โดเมน)
   if (process.env.RESEND_API_KEY) {
@@ -112,6 +115,7 @@ async function autoSendRsvp(rec, req) {
   const { subject, html, text } = buildRsvpEmail(rec, baseUrl);
   const result = await sendEmail(rec.email, subject, html, text);
   if (result.sent) { try { await store.markEmailSent(rec.id); } catch {} }
+  else console.error('❌ อีเมลยืนยันไม่ถูกส่ง:', result.reason);
 }
 
 // ---------- OTP ยืนยันเบอร์โทร (เก็บชั่วคราวในหน่วยความจำ) ----------
@@ -507,7 +511,7 @@ const server = http.createServer(async (req, res) => {
       const { subject, html, text } = buildOtpEmail(code);
       const r = await sendEmail(email, subject, html, text);
       if (r.sent) return sendJson(res, 200, { ok: true, sent: true });
-      if (emailConfigured()) return sendJson(res, 502, { ok: false, error: 'ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่' });
+      if (emailConfigured()) { console.error('❌ ส่ง OTP ไม่สำเร็จ:', r.reason); return sendJson(res, 502, { ok: false, error: 'ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่' }); }
       return sendJson(res, 200, { ok: true, sent: false, devCode: code }); // โหมดทดสอบ: ยังไม่ตั้งค่าอีเมล
     }
 
