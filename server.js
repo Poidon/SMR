@@ -69,12 +69,35 @@ function buildRsvpEmail(rec, baseUrl) {
   const text = `เรียน คุณ${rec.fullName}\nกรุณายืนยันการเข้าร่วมงานสัมมนา: ${link}`;
   return { subject, html, text };
 }
-// ตั้งค่าอีเมลไว้แล้วหรือยัง (Gmail SMTP หรือ Resend)
+// ตั้งค่าอีเมลไว้แล้วหรือยัง (Brevo / Gmail SMTP / Resend)
 function emailConfigured() {
-  return !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) || !!process.env.RESEND_API_KEY;
+  return !!process.env.BREVO_API_KEY
+    || !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
+    || !!process.env.RESEND_API_KEY;
 }
 async function sendEmail(to, subject, html, text) {
-  // 1) Gmail SMTP (ฟรี — ใช้ App Password ของ Gmail ที่มีอยู่ ไม่ต้องมีโดเมน)
+  // 1) Brevo (HTTP API — ฟรี ไม่ต้องมีโดเมน ใช้ verified single sender; ไม่โดน Render บล็อก)
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const from = process.env.EMAIL_FROM || process.env.GMAIL_USER || '';
+      const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          sender: { email: from, name: 'ลงทะเบียนงานสัมมนา' },
+          to: [{ email: to }],
+          subject, htmlContent: html, textContent: text || subject,
+        }),
+      });
+      if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        console.error('❌ Brevo ส่งไม่สำเร็จ:', r.status, t.slice(0, 300));
+        return { sent: false, reason: 'Brevo ' + r.status };
+      }
+      return { sent: true, provider: 'brevo' };
+    } catch (e) { console.error('❌ Brevo error:', e && e.message); return { sent: false, reason: 'เชื่อมต่อ Brevo ไม่ได้' }; }
+  }
+  // 2) Gmail SMTP (มักใช้ไม่ได้บน Render เพราะ SMTP ถูกบล็อก)
   if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
     try {
       const nodemailer = require('nodemailer');

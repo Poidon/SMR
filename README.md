@@ -34,10 +34,12 @@ npm start          # หรือ node server.js
 | `DATABASE_URL` | *(ว่าง)* | ถ้ามี → ใช้ PostgreSQL |
 | `ADMIN_KEY` | `admin123` | รหัสผ่านเข้าหน้าหลังบ้าน |
 | `PUBLIC_URL` | *(เดาจาก request)* | โดเมนสาธารณะ ใช้สร้างลิงก์ RSVP ในอีเมล (เช่น `https://xxx.up.railway.app`) |
-| `GMAIL_USER` | *(ว่าง)* | **วิธีฟรี** — อีเมล Gmail ที่ใช้ส่ง (เช่น `you@gmail.com`) ใช้คู่กับ App Password ไม่ต้องมีโดเมน |
-| `GMAIL_APP_PASSWORD` | *(ว่าง)* | App Password 16 หลักของ Gmail (ต้องเปิด 2-Step Verification ก่อน) |
-| `RESEND_API_KEY` | *(ว่าง)* | (ทางเลือก) ส่งผ่าน Resend แทน — ต้อง verify โดเมนเอง |
-| `EMAIL_FROM` | *(GMAIL_USER)* | อีเมลผู้ส่ง; ถ้าใช้ Gmail ปล่อยว่างได้ (จะใช้ `GMAIL_USER`) |
+| `BREVO_API_KEY` | *(ว่าง)* | **แนะนำสำหรับ Render** — ส่งอีเมลผ่าน Brevo (HTTP API ฟรี 300/วัน ไม่ต้องมีโดเมน ไม่โดนบล็อก) |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | *(ว่าง)* | (ทางเลือก) Gmail SMTP — **มักใช้ไม่ได้บน Render เพราะ SMTP ถูกบล็อก** |
+| `RESEND_API_KEY` | *(ว่าง)* | (ทางเลือก) ส่งผ่าน Resend — ต้อง verify โดเมนเอง |
+| `EMAIL_FROM` | *(ว่าง)* | อีเมลผู้ส่ง — **ถ้าใช้ Brevo ต้องเป็นอีเมลที่ verify เป็น sender ใน Brevo แล้ว** |
+
+> ลำดับการเลือก provider ใน `sendEmail`: Brevo → Gmail → Resend (ตั้งตัวไหนไว้ก็ใช้ตัวนั้น)
 | `AUTO_EMAIL` | *(เปิด)* | อีเมลยืนยันจะถูกส่ง**อัตโนมัติทันทีที่ลงทะเบียน** (เมื่อมี `RESEND_API_KEY`); ตั้ง `false` เพื่อปิดและส่งเองจากหลังบ้านแทน |
 | `TWILIO_ACCOUNT_SID` | *(ว่าง)* | ตั้งครบ 3 ตัว (SID / AUTH_TOKEN / FROM) → ส่ง OTP ทาง SMS จริงผ่าน Twilio |
 | `TWILIO_AUTH_TOKEN` | *(ว่าง)* | Auth token ของ Twilio |
