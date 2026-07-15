@@ -62,6 +62,7 @@
       <button class="btn ghost" id="regBtn">← ไปหน้าผู้ลงทะเบียน</button>
       <button class="btn ghost" id="refreshBtn">รีเฟรช</button>
       <button class="btn" id="exportBtn">ดาวน์โหลด CSV</button>
+      <button class="btn" id="clearBtn" style="background:#fff;color:var(--error);border:1px solid #fecaca">ล้างผลทั้งหมด</button>
       <button class="btn ghost" id="logoutBtn">ออกจากระบบ</button>
     </div>
 
@@ -145,6 +146,13 @@
     $('key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
     $('refreshBtn').onclick = load;
     $('exportBtn').onclick = () => { window.location = '/api/feedback.csv?key=' + encodeURIComponent(KEY); };
+    $('clearBtn').onclick = async () => {
+      if (!rows.length) { alert('ยังไม่มีข้อมูลให้ลบ'); return; }
+      if (!confirm('ต้องการลบผลแบบประเมิน "ทั้งหมด" (' + rows.length + ' ชุด) ใช่หรือไม่?\nย้อนกลับไม่ได้')) return;
+      if (prompt('เพื่อยืนยัน โปรดพิมพ์คำว่า  ลบ  แล้วกดตกลง') !== 'ลบ') { alert('ยกเลิกแล้ว'); return; }
+      const res = await fetch('/api/feedback', { method: 'DELETE', headers: { 'x-admin-key': KEY } });
+      if (res.ok) { alert('ล้างผลแบบประเมินแล้ว'); load(); } else { alert('ลบไม่สำเร็จ'); }
+    };
     $('logoutBtn').onclick = logout;
     $('regBtn').onclick = () => { location.href = '/admin'; };
 

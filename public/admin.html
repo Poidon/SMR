@@ -82,6 +82,7 @@
       <button class="btn ghost" id="feedbackBtn">ผลแบบประเมิน</button>
       <button class="btn ghost" id="qrBtn">QR code</button>
       <button class="btn" id="exportBtn">ดาวน์โหลด CSV</button>
+      <button class="btn danger" id="clearBtn">ล้างข้อมูลทั้งหมด</button>
       <button class="btn ghost" id="logoutBtn">ออกจากระบบ</button>
     </div>
 
@@ -268,12 +269,21 @@
 
     function exportCsv() { window.location = '/api/export.csv?key=' + encodeURIComponent(KEY); }
 
+    async function clearAll() {
+      if (!rows.length) { alert('ยังไม่มีข้อมูลให้ลบ'); return; }
+      if (!confirm('ต้องการลบข้อมูลผู้ลงทะเบียน "ทั้งหมด" (' + rows.length + ' คน) ใช่หรือไม่?\nการกระทำนี้ย้อนกลับไม่ได้')) return;
+      if (prompt('เพื่อยืนยัน โปรดพิมพ์คำว่า  ลบ  แล้วกดตกลง') !== 'ลบ') { alert('ยกเลิกแล้ว'); return; }
+      const res = await fetch('/api/registrations', { method: 'DELETE', headers: { 'x-admin-key': KEY } });
+      if (res.ok) { alert('ล้างข้อมูลทั้งหมดแล้ว'); load(); } else { alert('ลบไม่สำเร็จ'); }
+    }
+
     $('loginBtn').onclick = login;
     $('key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
     $('refreshBtn').onclick = load;
     $('feedbackBtn').onclick = () => { location.href = '/admin/feedback'; };
     $('qrBtn').onclick = () => { location.href = '/admin/qr'; };
     $('exportBtn').onclick = exportCsv;
+    $('clearBtn').onclick = clearAll;
     $('logoutBtn').onclick = logout;
     $('search').addEventListener('input', render);
 

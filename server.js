@@ -311,6 +311,8 @@ function createPgStore(url) {
       const { rows } = await pool.query(`SELECT COUNT(*)::int AS c FROM seminar_registrations`);
       return rows[0].c;
     },
+    async clearRegistrations() { await pool.query(`DELETE FROM seminar_registrations`); },
+    async clearFeedback() { await pool.query(`DELETE FROM seminar_feedback`); },
     // ---- แบบประเมินความพึงพอใจ ----
     async insertFeedback(rec) {
       await pool.query(
@@ -360,6 +362,8 @@ function createFileStore() {
       const l = read(); const r = l.find(x => x.id === id); if (r) { r.emailSentAt = new Date().toISOString(); write(l); }
     },
     async remove(id) { const l = read().filter(r => r.id !== id); write(l); return l.length; },
+    async clearRegistrations() { write([]); },
+    async clearFeedback() { fs.writeFileSync(FEEDBACK_FILE, '[]', 'utf8'); },
     // ---- แบบประเมินความพึงพอใจ ----
     async insertFeedback(rec) {
       let l = []; try { l = JSON.parse(fs.readFileSync(FEEDBACK_FILE, 'utf8')) || []; } catch {}
@@ -529,6 +533,20 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/api/registrations') {
       if (!isAuthed(req, url)) return sendJson(res, 401, { ok: false, error: 'รหัสผ่านไม่ถูกต้อง' });
       return sendJson(res, 200, { ok: true, data: await store.all() });
+    }
+
+    // --- API: ล้างรายชื่อผู้ลงทะเบียนทั้งหมด (ต้องมีรหัสผ่าน) ---
+    if (req.method === 'DELETE' && p === '/api/registrations') {
+      if (!isAuthed(req, url)) return sendJson(res, 401, { ok: false, error: 'รหัสผ่านไม่ถูกต้อง' });
+      await store.clearRegistrations();
+      return sendJson(res, 200, { ok: true, total: 0 });
+    }
+
+    // --- API: ล้างผลแบบประเมินทั้งหมด (ต้องมีรหัสผ่าน) ---
+    if (req.method === 'DELETE' && p === '/api/feedback') {
+      if (!isAuthed(req, url)) return sendJson(res, 401, { ok: false, error: 'รหัสผ่านไม่ถูกต้อง' });
+      await store.clearFeedback();
+      return sendJson(res, 200, { ok: true });
     }
 
     // --- API: ลบทีละรายการ (ต้องมีรหัสผ่าน) ---
