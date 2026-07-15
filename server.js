@@ -92,7 +92,7 @@ async function sendEmail(to, subject, html, text) {
       if (!r.ok) {
         const t = await r.text().catch(() => '');
         console.error('❌ Brevo ส่งไม่สำเร็จ:', r.status, t.slice(0, 300));
-        return { sent: false, reason: 'Brevo ' + r.status };
+        return { sent: false, reason: 'Brevo ' + r.status + (t ? ' ' + t.slice(0, 160) : '') };
       }
       return { sent: true, provider: 'brevo' };
     } catch (e) { console.error('❌ Brevo error:', e && e.message); return { sent: false, reason: 'เชื่อมต่อ Brevo ไม่ได้' }; }
@@ -535,7 +535,7 @@ const server = http.createServer(async (req, res) => {
       const { subject, html, text } = buildOtpEmail(code);
       const r = await sendEmail(email, subject, html, text);
       if (r.sent) return sendJson(res, 200, { ok: true, sent: true });
-      if (emailConfigured()) { console.error('❌ ส่ง OTP ไม่สำเร็จ:', r.reason); return sendJson(res, 502, { ok: false, error: 'ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่' }); }
+      if (emailConfigured()) { console.error('❌ ส่ง OTP ไม่สำเร็จ:', r.reason); return sendJson(res, 502, { ok: false, error: 'ส่งอีเมลไม่สำเร็จ: ' + (r.reason || 'ไม่ทราบสาเหตุ') }); }
       return sendJson(res, 200, { ok: true, sent: false, devCode: code }); // โหมดทดสอบ: ยังไม่ตั้งค่าอีเมล
     }
 
