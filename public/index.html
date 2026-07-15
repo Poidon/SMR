@@ -180,12 +180,12 @@
 
     <!-- ด่านยืนยันเบอร์โทรด้วย OTP (แสดงก่อน เข้าฟอร์มไม่ได้จนกว่าจะยืนยัน) -->
     <div class="card otp-card" id="otpGate">
-      <h2>ยืนยันเบอร์โทรศัพท์</h2>
-      <p class="otp-desc">กรอกเบอร์โทรเพื่อรับรหัส OTP ก่อนเข้าสู่แบบฟอร์มลงทะเบียน</p>
+      <h2>ยืนยันอีเมล</h2>
+      <p class="otp-desc">กรอกอีเมลเพื่อรับรหัส OTP ก่อนเข้าสู่แบบฟอร์มลงทะเบียน</p>
 
       <div id="otpStep1">
-        <label class="q" for="otpPhone">เบอร์โทรศัพท์ <span class="req">*</span></label>
-        <input type="tel" id="otpPhone" inputmode="numeric" placeholder="เช่น 0812345678" autocomplete="tel" />
+        <label class="q" for="otpEmail">อีเมล <span class="req">*</span></label>
+        <input type="email" id="otpEmail" placeholder="เช่น you@example.com" autocomplete="email" />
         <button type="button" class="submit" id="sendOtpBtn">ส่งรหัส OTP</button>
       </div>
 
@@ -194,7 +194,7 @@
         <input type="text" id="otpCode" inputmode="numeric" maxlength="6" placeholder="------" autocomplete="one-time-code" />
         <div class="otp-info" id="otpInfo" style="display:none"></div>
         <button type="button" class="submit" id="verifyOtpBtn">ยืนยันรหัส</button>
-        <button type="button" class="linklike" id="resendBtn">↻ ส่งรหัสใหม่ / เปลี่ยนเบอร์</button>
+        <button type="button" class="linklike" id="resendBtn">↻ ส่งรหัสใหม่ / เปลี่ยนอีเมล</button>
       </div>
 
       <div class="otpmsg" id="otpMsg"></div>
@@ -484,8 +484,8 @@
         btn.disabled = false; btn.textContent = 'ลงทะเบียน';
       }
     });
-    // ================== OTP ยืนยันเบอร์โทร ==================
-    let otpPhone = '';
+    // ================== OTP ยืนยันอีเมล ==================
+    let otpEmail = '';
     window.__otpToken = '';
     const otpMsg = $('otpMsg');
     const showOtpMsg = t => { otpMsg.textContent = t; otpMsg.className = 'otpmsg show error'; };
@@ -493,23 +493,23 @@
 
     $('sendOtpBtn').addEventListener('click', async () => {
       clearOtpMsg();
-      const phone = $('otpPhone').value.trim();
-      if (!validPhone(phone)) { showOtpMsg('เบอร์โทรไม่ถูกต้อง (9-10 หลัก)'); return; }
+      const email = $('otpEmail').value.trim();
+      if (!validEmail(email)) { showOtpMsg('อีเมลไม่ถูกต้อง'); return; }
       const btn = $('sendOtpBtn'); btn.disabled = true; btn.textContent = 'กำลังส่ง...';
       try {
         const res = await fetch('/api/otp/request', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }),
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
         });
         const out = await res.json();
         if (res.ok && out.ok) {
-          otpPhone = phone;
+          otpEmail = email;
           $('otpStep1').style.display = 'none';
           $('otpStep2').style.display = 'block';
           $('otpCode').value = ''; $('otpCode').focus();
           $('otpInfo').style.display = 'block';
           $('otpInfo').textContent = out.devCode
-            ? 'โหมดทดสอบ (ยังไม่ได้ตั้งค่าส่ง SMS จริง) — รหัส OTP ของคุณคือ ' + out.devCode
-            : 'ส่งรหัส OTP ไปที่เบอร์ ' + phone + ' แล้ว (หมดอายุใน 5 นาที)';
+            ? 'โหมดทดสอบ (ยังไม่ได้ตั้งค่าส่งอีเมลจริง) — รหัส OTP ของคุณคือ ' + out.devCode
+            : 'ส่งรหัส OTP ไปที่อีเมล ' + email + ' แล้ว (หมดอายุใน 5 นาที) — โปรดตรวจกล่องจดหมาย/สแปม';
         } else { showOtpMsg(out.error || 'ส่งรหัสไม่สำเร็จ'); }
       } catch { showOtpMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้'); }
       btn.disabled = false; btn.textContent = 'ส่งรหัส OTP';
@@ -522,14 +522,14 @@
       const btn = $('verifyOtpBtn'); btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ...';
       try {
         const res = await fetch('/api/otp/verify', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: otpPhone, code }),
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: otpEmail, code }),
         });
         const out = await res.json();
         if (res.ok && out.ok) {
           window.__otpToken = out.token;
           $('otpGate').style.display = 'none';
           $('regArea').style.display = 'block';
-          const pe = $('phone'); pe.value = otpPhone; pe.readOnly = true; // ล็อกเบอร์ที่ยืนยันแล้ว
+          const ee = $('email'); ee.value = otpEmail; ee.readOnly = true; // ล็อกอีเมลที่ยืนยันแล้ว
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else { showOtpMsg(out.error || 'ยืนยันไม่สำเร็จ'); }
       } catch { showOtpMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้'); }
@@ -541,7 +541,7 @@
       $('otpStep2').style.display = 'none';
       $('otpStep1').style.display = 'block';
       $('otpInfo').style.display = 'none';
-      $('otpPhone').focus();
+      $('otpEmail').focus();
     });
   </script>
 </body>
