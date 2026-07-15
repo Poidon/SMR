@@ -93,6 +93,37 @@ async function autoSendRsvp(rec, req) {
   if (result.sent) { try { await store.markEmailSent(rec.id); } catch {} }
 }
 
+// ---------- OTP ยืนยันเบอร์โทร (เก็บชั่วคราวในหน่วยความจำ) ----------
+const otpStore = new Map();       // phone_norm -> { code, expires, attempts }
+const verifiedStore = new Map();  // phone_norm -> { token, expires }
+const OTP_TTL = 5 * 60 * 1000;    // รหัสหมดอายุใน 5 นาที
+const VERIFIED_TTL = 30 * 60 * 1000; // ยืนยันแล้วใช้ได้ 30 นาที
+const genOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+
+// ส่ง SMS ผ่าน Twilio (ถ้าตั้ง env ครบ); ถ้าไม่ตั้ง = โหมดทดสอบ (ไม่ส่งจริง)
+async function sendSms(phone, message) {
+  const SID = process.env.TWILIO_ACCOUNT_SID, TOKEN = process.env.TWILIO_AUTH_TOKEN, FROM = process.env.TWILIO_FROM;
+  if (SID && TOKEN && FROM) {
+    try {
+      const to = /^0\d{8,9}$/.test(phone) ? '+66' + phone.slice(1) : phone; // เบอร์ไทย 0xxxxxxxxx → +66
+      const body = new URLSearchParams({ To: to, From: FROM, Body: message });
+      const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${SID}/Messages.json`, {
+        method: 'POST',
+        headers: { Authorization: 'Basic ' + Buffer.from(`${SID}:${TOKEN}`).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+      if (!r.ok) return { sent: false, configured: true };
+      return { sent: true, configured: true };
+    } catch { return { sent: false, configured: true }; }
+  }
+  return { sent: false, configured: false };
+}
+function verifyOtpToken(phone, token) {
+  const v = verifiedStore.get(normPhone(phone));
+  return !!(v && token && v.token === token && Date.now() <= v.expires);
+}
+
 // ---------- ชั้นเก็บข้อมูล: PostgreSQL ----------
 function createPgStore(url) {
   const { Pool } = require('pg');
@@ -373,6 +404,7 @@ const server = http.createServer(async (req, res) => {
       if (!institution) return sendJson(res, 400, { ok: false, error: 'กรุณากรอกมหาวิทยาลัย / คณะ / สาขา' });
       if (!validEmail(email)) return sendJson(res, 400, { ok: false, error: 'อีเมลไม่ถูกต้อง' });
       if (!validPhone(phone)) return sendJson(res, 400, { ok: false, error: 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)' });
+      if (!verifyOtpToken(phone, String(data.otpToken || ''))) return sendJson(res, 403, { ok: false, error: 'กรุณายืนยันเบอร์โทรด้วยรหัส OTP ก่อนลงทะเบียน' });
       if (!STATUSES.includes(status)) return sendJson(res, 400, { ok: false, error: 'กรุณาเลือกสถานะผู้เข้าร่วม' });
       if (!MODES.includes(attendMode)) return sendJson(res, 400, { ok: false, error: 'กรุณาเลือกรูปแบบการเข้าร่วม' });
       if (!nameEnglish) return sendJson(res, 400, { ok: false, error: 'กรุณากรอกชื่อ-นามสกุล (ภาษาอังกฤษ) สำหรับออกเกียรติบัตร' });
@@ -403,6 +435,7 @@ const server = http.createServer(async (req, res) => {
         }
         throw e;
       }
+      verifiedStore.delete(normPhone(phone)); // ใช้สิทธิ์ OTP แล้ว ป้องกันนำ token ไปใช้ซ้ำ
       // ส่งอีเมลยืนยันอัตโนมัติ (ไม่บล็อกการตอบกลับ; ไม่ให้ error ของเมลกระทบการลงทะเบียน)
       autoSendRsvp(record, req).catch(e => console.error('ส่งอีเมลอัตโนมัติไม่สำเร็จ:', e && e.message));
       const total = (await store.all()).length;
@@ -416,6 +449,40 @@ const server = http.createServer(async (req, res) => {
       const emailTaken = email ? await store.emailExists(email) : false;
       const phoneTaken = phone ? await store.phoneExists(phone) : false;
       return sendJson(res, 200, { ok: true, emailTaken, phoneTaken });
+    }
+
+    // --- API: ขอรหัส OTP ทางเบอร์โทร ---
+    if (req.method === 'POST' && p === '/api/otp/request') {
+      const body = await readBody(req);
+      let d; try { d = JSON.parse(body); } catch { return sendJson(res, 400, { ok: false, error: 'ข้อมูลไม่ถูกต้อง' }); }
+      const phone = clip(d.phone, 30);
+      if (!validPhone(phone)) return sendJson(res, 400, { ok: false, error: 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)' });
+      if (await store.phoneExists(phone)) return sendJson(res, 409, { ok: false, error: 'เบอร์นี้ถูกใช้ลงทะเบียนแล้ว' });
+      const code = genOtp();
+      otpStore.set(normPhone(phone), { code, expires: Date.now() + OTP_TTL, attempts: 0 });
+      const r = await sendSms(phone, `รหัส OTP สำหรับลงทะเบียนงานสัมมนา: ${code} (หมดอายุใน 5 นาที)`);
+      if (r.configured && !r.sent) return sendJson(res, 502, { ok: false, error: 'ส่ง SMS ไม่สำเร็จ กรุณาลองใหม่' });
+      const resp = { ok: true, sent: r.sent };
+      if (!r.configured) resp.devCode = code; // โหมดทดสอบ: ยังไม่ตั้งค่า SMS provider
+      return sendJson(res, 200, resp);
+    }
+
+    // --- API: ยืนยันรหัส OTP ---
+    if (req.method === 'POST' && p === '/api/otp/verify') {
+      const body = await readBody(req);
+      let d; try { d = JSON.parse(body); } catch { return sendJson(res, 400, { ok: false, error: 'ข้อมูลไม่ถูกต้อง' }); }
+      const phone = clip(d.phone, 30);
+      const code = String(d.code || '').trim();
+      const key = normPhone(phone);
+      const rec = otpStore.get(key);
+      if (!rec || Date.now() > rec.expires) { otpStore.delete(key); return sendJson(res, 400, { ok: false, error: 'รหัสหมดอายุ กรุณาขอรหัสใหม่' }); }
+      rec.attempts++;
+      if (rec.attempts > 5) { otpStore.delete(key); return sendJson(res, 429, { ok: false, error: 'ยืนยันผิดหลายครั้ง กรุณาขอรหัสใหม่' }); }
+      if (code !== rec.code) return sendJson(res, 400, { ok: false, error: 'รหัส OTP ไม่ถูกต้อง' });
+      otpStore.delete(key);
+      const token = genToken();
+      verifiedStore.set(key, { token, expires: Date.now() + VERIFIED_TTL });
+      return sendJson(res, 200, { ok: true, token, phone });
     }
 
     // --- API: ดึงรายชื่อทั้งหมด (ต้องมีรหัสผ่าน) ---
