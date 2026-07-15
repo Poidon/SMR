@@ -14,6 +14,8 @@ const PORT = process.env.PORT || 3000;
 // รหัสผ่านเข้าหน้าหลังบ้าน (กำหนดผ่าน env: ADMIN_KEY)
 const ADMIN_KEY = process.env.ADMIN_KEY || 'admin123';
 const DATABASE_URL = process.env.DATABASE_URL || '';
+// บังคับยืนยัน OTP ก่อนลงทะเบียนหรือไม่ (ค่าเริ่มต้น: ไม่บังคับ = ลงทะเบียนตรง ๆ)
+const REQUIRE_OTP = process.env.REQUIRE_OTP === 'true';
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
@@ -418,7 +420,7 @@ const server = http.createServer(async (req, res) => {
       if (!institution) return sendJson(res, 400, { ok: false, error: 'กรุณากรอกมหาวิทยาลัย / คณะ / สาขา' });
       if (!validEmail(email)) return sendJson(res, 400, { ok: false, error: 'อีเมลไม่ถูกต้อง' });
       if (!validPhone(phone)) return sendJson(res, 400, { ok: false, error: 'เบอร์โทรไม่ถูกต้อง (9-10 หลัก)' });
-      if (!verifyOtpToken(email, String(data.otpToken || ''))) return sendJson(res, 403, { ok: false, error: 'กรุณายืนยันอีเมลด้วยรหัส OTP ก่อนลงทะเบียน' });
+      if (REQUIRE_OTP && !verifyOtpToken(email, String(data.otpToken || ''))) return sendJson(res, 403, { ok: false, error: 'กรุณายืนยันอีเมลด้วยรหัส OTP ก่อนลงทะเบียน' });
       if (!STATUSES.includes(status)) return sendJson(res, 400, { ok: false, error: 'กรุณาเลือกสถานะผู้เข้าร่วม' });
       if (!MODES.includes(attendMode)) return sendJson(res, 400, { ok: false, error: 'กรุณาเลือกรูปแบบการเข้าร่วม' });
       if (!nameEnglish) return sendJson(res, 400, { ok: false, error: 'กรุณากรอกชื่อ-นามสกุล (ภาษาอังกฤษ) สำหรับออกเกียรติบัตร' });
@@ -463,6 +465,11 @@ const server = http.createServer(async (req, res) => {
       const emailTaken = email ? await store.emailExists(email) : false;
       const phoneTaken = phone ? await store.phoneExists(phone) : false;
       return sendJson(res, 200, { ok: true, emailTaken, phoneTaken });
+    }
+
+    // --- API: ค่าตั้งค่าสำหรับหน้าเว็บ (เช่น บังคับ OTP ไหม) ---
+    if (req.method === 'GET' && p === '/api/config') {
+      return sendJson(res, 200, { ok: true, requireOtp: REQUIRE_OTP });
     }
 
     // --- API: ขอรหัส OTP ทางอีเมล ---

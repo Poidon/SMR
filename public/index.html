@@ -178,8 +178,8 @@
       <div class="hero-venue">Siam University<br>Building 19, Hall Of Fame</div>
     </header>
 
-    <!-- ด่านยืนยันเบอร์โทรด้วย OTP (แสดงก่อน เข้าฟอร์มไม่ได้จนกว่าจะยืนยัน) -->
-    <div class="card otp-card" id="otpGate">
+    <!-- ด่านยืนยันอีเมลด้วย OTP (แสดงเฉพาะเมื่อเซิร์ฟเวอร์ตั้ง REQUIRE_OTP=true) -->
+    <div class="card otp-card" id="otpGate" style="display:none">
       <h2>ยืนยันอีเมล</h2>
       <p class="otp-desc">กรอกอีเมลเพื่อรับรหัส OTP ก่อนเข้าสู่แบบฟอร์มลงทะเบียน</p>
 
@@ -200,7 +200,7 @@
       <div class="otpmsg" id="otpMsg"></div>
     </div>
 
-    <div id="regArea" style="display:none">
+    <div id="regArea">
     <p class="form-hint">กรุณากรอกข้อมูลให้ครบถ้วน · ช่องที่มีเครื่องหมาย <span class="req">*</span> จำเป็นต้องกรอก</p>
 
     <form id="form" novalidate>
@@ -543,6 +543,11 @@
       $('otpInfo').style.display = 'none';
       $('otpEmail').focus();
     });
+
+    // ค่าเริ่มต้น: แสดงฟอร์มเลย — จะแสดงด่าน OTP ก็ต่อเมื่อเซิร์ฟเวอร์ตั้ง REQUIRE_OTP=true
+    fetch('/api/config').then(r => r.json()).then(c => {
+      if (c && c.requireOtp) { $('otpGate').style.display = 'block'; $('regArea').style.display = 'none'; }
+    }).catch(() => {});
   </script>
 </body>
 </html>
