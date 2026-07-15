@@ -69,8 +69,27 @@ function buildRsvpEmail(rec, baseUrl) {
   const text = `เรียน คุณ${rec.fullName}\nกรุณายืนยันการเข้าร่วมงานสัมมนา: ${link}`;
   return { subject, html, text };
 }
+// ตั้งค่าอีเมลไว้แล้วหรือยัง (Gmail SMTP หรือ Resend)
+function emailConfigured() {
+  return !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) || !!process.env.RESEND_API_KEY;
+}
 async function sendEmail(to, subject, html, text) {
-  // เลือก provider จาก env; ถ้ายังไม่ตั้งค่า จะไม่ส่งจริง (คืน not-configured)
+  // 1) Gmail SMTP (ฟรี — ใช้ App Password ของ Gmail ที่มีอยู่ ไม่ต้องมีโดเมน)
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+      });
+      await transporter.sendMail({
+        from: process.env.EMAIL_FROM || process.env.GMAIL_USER,
+        to, subject, html, text,
+      });
+      return { sent: true, provider: 'gmail' };
+    } catch (e) { return { sent: false, reason: 'ส่งผ่าน Gmail ไม่สำเร็จ: ' + (e && e.message) }; }
+  }
+  // 2) Resend (ต้อง verify โดเมน)
   if (process.env.RESEND_API_KEY) {
     try {
       const r = await fetch('https://api.resend.com/emails', {
@@ -484,7 +503,7 @@ const server = http.createServer(async (req, res) => {
       const { subject, html, text } = buildOtpEmail(code);
       const r = await sendEmail(email, subject, html, text);
       if (r.sent) return sendJson(res, 200, { ok: true, sent: true });
-      if (process.env.RESEND_API_KEY) return sendJson(res, 502, { ok: false, error: 'ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่' });
+      if (emailConfigured()) return sendJson(res, 502, { ok: false, error: 'ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่' });
       return sendJson(res, 200, { ok: true, sent: false, devCode: code }); // โหมดทดสอบ: ยังไม่ตั้งค่าอีเมล
     }
 
