@@ -102,11 +102,14 @@ const genOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 
 // ส่ง SMS ผ่าน Twilio (ถ้าตั้ง env ครบ); ถ้าไม่ตั้ง = โหมดทดสอบ (ไม่ส่งจริง)
 async function sendSms(phone, message) {
-  const SID = process.env.TWILIO_ACCOUNT_SID, TOKEN = process.env.TWILIO_AUTH_TOKEN, FROM = process.env.TWILIO_FROM;
-  if (SID && TOKEN && FROM) {
+  const SID = process.env.TWILIO_ACCOUNT_SID, TOKEN = process.env.TWILIO_AUTH_TOKEN;
+  const FROM = process.env.TWILIO_FROM, MSID = process.env.TWILIO_MESSAGING_SERVICE_SID;
+  if (SID && TOKEN && (FROM || MSID)) {
     try {
       const to = /^0\d{8,9}$/.test(phone) ? '+66' + phone.slice(1) : phone; // เบอร์ไทย 0xxxxxxxxx → +66
-      const body = new URLSearchParams({ To: to, From: FROM, Body: message });
+      const params = { To: to, Body: message };
+      if (MSID) params.MessagingServiceSid = MSID; else params.From = FROM;
+      const body = new URLSearchParams(params);
       const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${SID}/Messages.json`, {
         method: 'POST',
         headers: { Authorization: 'Basic ' + Buffer.from(`${SID}:${TOKEN}`).toString('base64'),

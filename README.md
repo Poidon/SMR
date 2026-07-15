@@ -39,7 +39,8 @@ npm start          # หรือ node server.js
 | `AUTO_EMAIL` | *(เปิด)* | อีเมลยืนยันจะถูกส่ง**อัตโนมัติทันทีที่ลงทะเบียน** (เมื่อมี `RESEND_API_KEY`); ตั้ง `false` เพื่อปิดและส่งเองจากหลังบ้านแทน |
 | `TWILIO_ACCOUNT_SID` | *(ว่าง)* | ตั้งครบ 3 ตัว (SID / AUTH_TOKEN / FROM) → ส่ง OTP ทาง SMS จริงผ่าน Twilio |
 | `TWILIO_AUTH_TOKEN` | *(ว่าง)* | Auth token ของ Twilio |
-| `TWILIO_FROM` | *(ว่าง)* | เบอร์ผู้ส่งของ Twilio (รูปแบบ E.164 เช่น `+1xxxxxxxxxx`) |
+| `TWILIO_FROM` | *(ว่าง)* | เบอร์/Sender ID ผู้ส่งของ Twilio (E.164 เช่น `+1xxxxxxxxxx` หรือ Sender ID ที่ลงทะเบียนแล้ว) |
+| `TWILIO_MESSAGING_SERVICE_SID` | *(ว่าง)* | (ทางเลือก) ใช้ Messaging Service แทน `TWILIO_FROM` — เหมาะกับส่งเข้าเบอร์ไทย (ขึ้นต้น `MG...`) |
 
 > **OTP ยืนยันเบอร์:** หน้าแรกต้องยืนยันเบอร์ด้วยรหัส OTP ก่อนจึงเข้าฟอร์มได้ ถ้ายังไม่ตั้งค่า Twilio ระบบจะทำงานเป็น **โหมดทดสอบ** (แสดงรหัส OTP บนหน้าจอ) เมื่อตั้ง Twilio ครบแล้วจะส่งเข้าเบอร์จริงและไม่โชว์รหัส
 
