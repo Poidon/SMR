@@ -56,7 +56,8 @@ const attLabel = a => a === 'yes' ? 'มา' : a === 'no' ? 'ไม่มา' : 
 // ---------- อีเมล (เตรียมระบบไว้ ยังไม่ต้องผูก provider ก็ได้) ----------
 // ตั้งค่าเปิดใช้งานจริงภายหลังผ่าน env: RESEND_API_KEY, EMAIL_FROM, PUBLIC_URL
 function buildRsvpEmail(rec, baseUrl) {
-  const link = `${baseUrl}/rsvp?token=${rec.rsvpToken}`;
+  const base = String(baseUrl).replace(/\/+$/, ''); // ตัด / ท้ายกัน // ในลิงก์
+  const link = `${base}/rsvp?token=${rec.rsvpToken}`;
   const subject = 'ยืนยันการเข้าร่วมงานสัมมนา THINK WITH DATA, DECIDE WITH AI';
   const html = `<div style="font-family:'Segoe UI',sans-serif;line-height:1.7;color:#1e293b;max-width:520px;margin:auto">
     <h2 style="color:#4338ca">เรียน คุณ${rec.fullName}</h2>
@@ -438,8 +439,9 @@ const clip = (s, n = MAX_TEXT) => String(s == null ? '' : s).trim().slice(0, n);
 // ---------- Router ----------
 const server = http.createServer(async (req, res) => {
   try {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const p = url.pathname;
+    // แก้กรณี URL ขึ้นต้นด้วย // (จะถูกตีความเป็น host) แล้วรวมสแลชซ้อนใน path ให้ route ตรงเสมอ
+    const url = new URL(req.url.replace(/^\/{2,}/, '/'), `http://${req.headers.host}`);
+    const p = url.pathname.replace(/\/{2,}/g, '/');
 
     // --- API: ลงทะเบียน ---
     if (req.method === 'POST' && p === '/api/register') {
@@ -633,7 +635,7 @@ const server = http.createServer(async (req, res) => {
       const baseUrl = process.env.PUBLIC_URL || `${proto}://${req.headers.host}`;
       const { subject, html, text } = buildRsvpEmail(rec, baseUrl);
       const result = await sendEmail(rec.email, subject, html, text);
-      const rsvpLink = `${baseUrl}/rsvp?token=${rec.rsvpToken}`;
+      const rsvpLink = `${baseUrl.replace(/\/+$/, '')}/rsvp?token=${rec.rsvpToken}`;
       if (result.sent) { await store.markEmailSent(id); return sendJson(res, 200, { ok: true, sent: true }); }
       // ยังไม่ได้ตั้งค่า provider → ส่งลิงก์ RSVP กลับไปให้แอดมินคัดลอกส่งเองได้
       return sendJson(res, 200, { ok: false, sent: false, error: result.reason, rsvpLink });
