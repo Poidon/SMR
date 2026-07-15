@@ -81,6 +81,7 @@ async function sendEmail(to, subject, html, text) {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+        connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000, // กันค้างถ้าพอร์ต SMTP ถูกบล็อก
       });
       await transporter.sendMail({
         from: process.env.EMAIL_FROM || process.env.GMAIL_USER,
